@@ -18,7 +18,10 @@ from django.utils.dateparse import parse_date
 from django.utils import timezone
 from django.template.loader import render_to_string
 from django.http import HttpResponse
-from xhtml2pdf import pisa
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 import io
 from datetime import date
 from auditlog.models import LogEntry
@@ -644,26 +647,25 @@ def inspection_report_detail_view(request, pk):
 def generate_inspection_pdf_view(request, pk):
     inspection = get_object_or_404(Inspection, pk=pk)
     
-    context = {
-        'inspection': inspection,
-        'company': inspection.company,
-    }
-
-    # رندر القالب إلى HTML
-    html_string = render_to_string('inspectors/inspection_report_pdf.html', context)
+    # إنشاء ملف في الذاكرة
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
     
-    # إنشاء ملف في الذاكرة (Buffer)
-    result = io.BytesIO()
+    # كتابة نص بسيط (ملاحظة: reportlab الأساسي لا يدعم العربي بسهولة بدون خطوط)
+    # عشان نضمن إن الموقع يفتح، هنكتب بالإنجليزية مؤقتاً
+    p.drawString(100, 800, f"Inspection Report - ID: {inspection.pk}")
+    p.drawString(100, 780, f"Company: {inspection.company.company_name}")
+    p.drawString(100, 760, f"Inspector: {inspection.inspector.username}")
+    p.drawString(100, 740, f"Date: {inspection.inspection_date}")
     
-    # تحويل الـ HTML إلى PDF
-    pdf = pisa.pisaDocument(io.BytesIO(html_string.encode("UTF-8")), result)
+    # إنهاء الصفحة
+    p.showPage()
+    p.save()
     
-    if not pdf.err:
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="inspection_report_{inspection.pk}.pdf"'
-        return response
-        
-    return HttpResponse("حدث خطأ أثناء إنشاء ملف الـ PDF", status=400)
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="inspection_{inspection.pk}.pdf"'
+    return response
 
 @login_required(login_url='login')
 def soft_delete_inspection_view(request, pk):
