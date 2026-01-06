@@ -23,10 +23,10 @@ User = get_user_model()
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     add_form = CustomUserCreationForm
-    
-    
-    readonly_fields = ("last_login", "date_joined")
-    
+
+
+    readonly_fields = ["last_login", "date_joined"]
+
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         (_("Personal info"), {"fields": ("first_name", "last_name", "email", "phone_number", "address", "user_id")}),
@@ -42,7 +42,7 @@ class UserAdmin(BaseUserAdmin):
                 ),
             },
         ),
-        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+        (_("Important dates"), {"fields": ["last_login", "date_joined"]}),
     )
 
     add_fieldsets = (
