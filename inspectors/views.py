@@ -66,6 +66,13 @@ def is_manager(user):
 def is_inspector(user):
     return user.is_authenticated and user.groups.filter(name='Inspectors').exists()
 
+def is_system_user(user):
+    # نتحقق أولاً أنه ليس superuser
+    if user.is_superuser:
+        return False
+    # نتحقق أنه ينتمي لأحد المجموعتين
+    return user.groups.filter(name__in=['Managers', 'Inspectors']).exists()
+
 # دالة لإرسال إشعار بالبريد الإلكتروني
 def send_assignment_notification(company):
     inspector = company.assigned_to
@@ -254,21 +261,27 @@ def manager_edit_inspector_view(request, pk):
     return render(request, 'inspectors/inspector_edit.html', context)
 
 @login_required(login_url='login')
+@user_passes_test(is_system_user, login_url='login') # يستخدم الدالة الموحدة
 def companies_list(request):
     query = request.GET.get('q', '').strip()
     start_date = request.GET.get('start_date', '').strip()
     end_date = request.GET.get('end_date', '').strip()
-    sort_order = request.GET.get('sort_order', '-created_at') # الترتيب الافتراضي
+    sort_order = request.GET.get('sort_order', '-created_at')
 
-    if is_manager(request.user):
-        companies = Company.objects.filter(status='active').order_by('-created_at')
-    # المفتش يرى المنشآت المعينة له فقط
-    elif is_inspector(request.user):
-        companies = Company.objects.filter(assigned_to=request.user, status='active').order_by('-created_at')
+    # تحديد الصلاحيات داخل الدالة لجلب البيانات
+    user = request.user
+    
+    # التحقق من نوع المستخدم (باستخدام المجموعات أو السمات التي عرفتيها سابقاً)
+    if user.groups.filter(name='Managers').exists():
+        companies = Company.objects.filter(status='active')
+    elif user.groups.filter(name='Inspectors').exists():
+        # المفتش يرى الشركات المعينة له فقط
+        companies = Company.objects.filter(assigned_to=user, status='active')
     else:
         companies = Company.objects.none()
 
-    unread_notifications_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+    # جلب عدد الإشعارات غير المقروءة
+    unread_notifications_count = Notification.objects.filter(recipient=user, is_read=False).count()
 
     # فلترة بالبحث النصي
     if query:
@@ -276,14 +289,14 @@ def companies_list(request):
             Q(company_name__icontains=query) | Q(region__icontains=query)
         )
 
-    # فلترة بالتاريخ لو المستخدم اختار تاريخ
+    # فلترة بالتاريخ
     if start_date and end_date:
         start = parse_date(start_date)
         end = parse_date(end_date)
         if start and end:
             companies = companies.filter(created_at__date__range=(start, end))
 
-    # تطبيق الترتيب حسب الطلب
+    # تطبيق الترتيب (يجب التأكد من أن sort_order قيمة آمنة)
     companies = companies.order_by(sort_order)
 
     context = {
@@ -291,7 +304,7 @@ def companies_list(request):
         'query': query,
         'start_date': start_date,
         'end_date': end_date,
-        'sort_order': sort_order, # تمرير قيمة الترتيب إلى القالب
+        'sort_order': sort_order,
         'unread_notifications_count': unread_notifications_count,
     }
     return render(request, 'inspectors/companies_list.html', context)
@@ -440,6 +453,7 @@ def decline_assignment_view(request, pk):
 
 # 5. عرض الإشعارات
 @login_required(login_url='login')
+@user_passes_test(is_system_user, login_url='login') # يستخدم الدالة الموحدة
 def notifications_view(request):
     notifications = Notification.objects.filter(recipient=request.user).order_by('-created_at')
     
@@ -477,6 +491,7 @@ def company_details_view(request, pk):
 
 
 @login_required(login_url='login')
+@user_passes_test(is_system_user, login_url='login')
 def edit_company_view(request, pk):
     # جلب الشركة من قاعدة البيانات
     company = get_object_or_404(Company, pk=pk)
@@ -590,9 +605,16 @@ def edit_company_view(request, pk):
 
 
 @login_required(login_url='login')
+@user_passes_test(is_system_user, login_url='login')
 def add_inspection_view(request, pk):
     company = get_object_or_404(Company, pk=pk)
     
+    # حماية: التأكد أن المفتش هو المعين لهذه المنشأة وأن حالتها مقبولة
+    if not is_manager(request.user):
+        if company.assigned_to != request.user or company.status_by_inspector not in ['accepted', 'in_progress']:
+            messages.error(request, "ليس لديك الصلاحية لإضافة تقرير لهذه المنشأة أو يجب قبول المهمة أولاً.")
+            return redirect('companies_list')
+
     if request.method == 'POST':
         inspection_form = InspectionForm(request.POST)
         image_formset = InspectionImageFormSet(request.POST, request.FILES, prefix='images')
@@ -600,19 +622,23 @@ def add_inspection_view(request, pk):
         if inspection_form.is_valid() and image_formset.is_valid():
             try:
                 with transaction.atomic():
-                    # حفظ التقرير وربطه بالمستخدم والشركة
                     inspection = inspection_form.save(commit=False)
                     inspection.inspector = request.user
                     inspection.company = company
                     inspection.status = 'draft'
                     inspection.save()
                     
-                    # حفظ الصور وربطها بالتقرير الجديد
                     images = image_formset.save(commit=False)
                     for image in images:
                         image.inspection = inspection
                         image.save()
+                    
+                    # تحديث حالة المنشأة لتصبح "قيد التنفيذ" تلقائياً
+                    if company.status_by_inspector == 'accepted':
+                        company.status_by_inspector = 'in_progress'
+                        company.save()
 
+                messages.success(request, "تم حفظ المسودة بنجاح.")
                 return redirect('inspection_report_detail', pk=inspection.pk)
             except Exception as e:
                 inspection_form.add_error(None, f"حدث خطأ أثناء الحفظ: {str(e)}")
@@ -628,14 +654,22 @@ def add_inspection_view(request, pk):
     return render(request, 'inspectors/add_inspection_report.html', context)
 
 
+
+
 @login_required(login_url='login')
+@user_passes_test(is_system_user, login_url='login')
 def inspection_report_detail_view(request, pk):
     inspection = get_object_or_404(Inspection, pk=pk)
-    images = InspectionImage.objects.filter(inspection=inspection)
     
+    # حماية: المفتش يرى تقاريره فقط، المدير يرى كل شيء
+    if not is_manager(request.user) and inspection.inspector != request.user:
+        messages.error(request, "ليس لديك صلاحية لعرض هذا التقرير.")
+        return redirect('companies_list')
+
+    images = InspectionImage.objects.filter(inspection=inspection)
     context = {
         'inspection': inspection,
-        'company': inspection.company, # لتسهيل الوصول لبيانات الشركة
+        'company': inspection.company,
         'images': images,
     }
     return render(request, 'inspectors/inspection_report_detail.html', context)
@@ -643,7 +677,9 @@ def inspection_report_detail_view(request, pk):
 
 
 
+
 @login_required(login_url='login')
+@user_passes_test(is_system_user, login_url='login')
 def generate_inspection_pdf_view(request, pk):
     inspection = get_object_or_404(Inspection, pk=pk)
     
@@ -703,11 +739,13 @@ def soft_delete_inspection_view(request, pk):
 
 
 @login_required(login_url='login')
+@user_passes_test(is_system_user, login_url='login')
 def edit_inspection_view(request, pk):
+    # حماية إضافية: التأكد أن المفتش هو صاحب التقرير
     inspection = get_object_or_404(Inspection, pk=pk, inspector=request.user)
 
-    if inspection.status != 'draft':
-        messages.error(request, "لا يمكن تعديل التقرير إلا في حالة المسودة.")
+    if inspection.status != 'draft' and inspection.status != 'rejected':
+        messages.error(request, "لا يمكن تعديل التقرير إلا إذا كان مسودة أو مرفوضاً من المدير.")
         return redirect('inspection_report_detail', pk=inspection.pk)
     
     if request.method == 'POST':
@@ -717,10 +755,8 @@ def edit_inspection_view(request, pk):
         if form.is_valid() and formset.is_valid():
             form.save()
             formset.save()
-            messages.success(request, "تم تعديل التقرير بنجاح.")
+            messages.success(request, "تم تحديث التقرير.")
             return redirect('inspection_report_detail', pk=inspection.pk)
-        else:
-            messages.error(request, "حدث خطأ أثناء حفظ التعديلات. الرجاء مراجعة البيانات.")
     else:
         form = InspectionForm(instance=inspection)
         formset = InspectionImageFormSet(instance=inspection, prefix='images')
@@ -732,8 +768,8 @@ def edit_inspection_view(request, pk):
     }
     return render(request, 'inspectors/edit_inspection.html', context)
 
-
 @login_required(login_url='login')
+@user_passes_test(is_inspector)
 def submit_for_review_view(request, pk):
     # ✅ التأكد من أنه المفتش المالك و أن الحالة هي 'draft'
     inspection = get_object_or_404(Inspection, pk=pk, inspector=request.user, status='draft')
@@ -886,6 +922,7 @@ def reject_inspection_view(request, pk):
 
 
 @login_required(login_url='login')
+@user_passes_test(is_inspector)
 def inspector_completed_reports_view(request):
     # ✅ المفتش يرى فقط تقاريره التي تم أرشفتها
     inspections = Inspection.objects.filter(
@@ -1027,6 +1064,7 @@ def profile_view(request):
 
 
 @login_required(login_url='login')
+@user_passes_test(is_manager)
 def manager_audit_log_view(request):
     # 1. تحديد المستخدمين المشرف عليهم المدير الحالي
     supervised_users = request.user.supervised_inspectors.all()
