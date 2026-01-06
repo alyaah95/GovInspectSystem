@@ -24,7 +24,7 @@ User = get_user_model()
 class UserAdmin(BaseUserAdmin):
     add_form = CustomUserCreationForm
     
-    # هذا السطر هو الحل للمشكلة:
+    
     readonly_fields = ("last_login", "date_joined")
     
     fieldsets = (
@@ -42,7 +42,7 @@ class UserAdmin(BaseUserAdmin):
                 ),
             },
         ),
-        (_("Important dates"), {"fields": ("last_login")}),
+        (_("Important dates"), {"fields": ("last_login",)}),
     )
 
     add_fieldsets = (
