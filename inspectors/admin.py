@@ -9,13 +9,10 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.translation import gettext_lazy as _
-# استيراد النموذج المخصص الجديد
 from .forms import CustomUserCreationForm
-
 from auditlog.models import LogEntry
 
-
-# admin.site.register(User)
+# تسجيل الموديلات الأخرى
 admin.site.register(Company)
 admin.site.register(CompanyImage)
 admin.site.register(Inspection)
@@ -26,6 +23,9 @@ User = get_user_model()
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     add_form = CustomUserCreationForm
+    
+    # هذا السطر هو الحل للمشكلة:
+    readonly_fields = ("last_login", "date_joined")
     
     fieldsets = (
         (None, {"fields": ("username", "password")}),
@@ -60,7 +60,6 @@ class UserAdmin(BaseUserAdmin):
                 obj.set_unusable_password()
                 obj.save()
                 
-                # Correctly get the current site using the request object
                 current_site = get_current_site(request) 
                 
                 subject = _('تفعيل حسابك في GovInspectSystem')
@@ -79,14 +78,11 @@ class UserAdmin(BaseUserAdmin):
         
         super().save_model(request, obj, form, change)
 
-
-
 class CustomLogEntryAdmin(admin.ModelAdmin):
     list_display = ['timestamp', 'action', 'content_type', 'object_repr', 'actor']
     
-# إلغاء التسجيل القديم وإعادة التسجيل بالاسم الجديد
 try:
     admin.site.unregister(LogEntry)
     admin.site.register(LogEntry, CustomLogEntryAdmin)
-except:
+except Exception:
     pass
