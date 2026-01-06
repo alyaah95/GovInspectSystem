@@ -2,8 +2,11 @@
 
 echo "--- BUILD START ---"
 
-# استخدام بايثون لتثبيت المكتبات بشكل يضمن وجودها في المسار الصحيح
+# التأكد من وجود pip وتحديثه
 python3.9 -m ensurepip
+python3.9 -m pip install --upgrade pip
+
+# تثبيت المكتبات (أهم تعديل هو --user أو المسار الحالي)
 python3.9 -m pip install -r requirements.txt
 
 # جمع الملفات الثابتة

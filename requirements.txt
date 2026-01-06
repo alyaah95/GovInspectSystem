@@ -4,7 +4,7 @@ Brotli==1.1.0
 cffi==1.17.1
 crispy-bootstrap5==2025.6
 cssselect2==0.8.0
-dj-database-url==3.1.0
+dj-database-url
 Django==5.2.4
 django-auditlog==3.3.0
 django-crispy-forms==2.4
