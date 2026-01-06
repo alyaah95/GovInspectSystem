@@ -1,0 +1,21 @@
+# الحماية القصوى (ملفات الأسرار)
+.env
+db.sqlite3
+secrets.json
+
+# ملفات بايثون المؤقتة (لا نحتاجها في الرفع)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+ENV/
+
+# ملفات الواجهة والنظام
+.DS_Store
+.vscode/
+.idea/
+
+# الملفات الثابتة والمرفوعة (تُجمع في السيرفر)
+staticfiles/
+media/

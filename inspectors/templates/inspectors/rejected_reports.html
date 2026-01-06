@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}التقارير المرفوضة{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="mb-4"><i class="fas fa-archive me-2 text-danger"></i>{{ list_title }}</h2>
+    <p class="text-info lead">
+        هذه التقارير تم رفضها وإغلاقها. لا يمكن تعديلها، ولكن يمكنك مراجعتها للاستفادة من ملاحظات المدير قبل بدء زيارة جديدة.
+    </p>
+    
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>المنشأة</th>
+                    <th>تاريخ التقرير</th>
+                    <th style="width: 45%;">سبب الرفض (ملاحظات المدير)</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inspection in inspections %}
+                <tr>
+                    <td>
+                        <a href="{% url 'company_details' pk=inspection.company.pk %}" class="fw-bold">
+                            {{ inspection.company.company_name }}
+                        </a>
+                    </td>
+                    <td>{{ inspection.inspection_date|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        <span class="text-danger fw-bold">{{ inspection.rejection_notes|default:"لا يوجد سبب محدد." }}</span>
+                    </td>
+                    <td>
+                        <a href="{% url 'inspection_report_detail' pk=inspection.pk %}" class="btn btn-sm btn-info">
+                            <i class="fas fa-eye"></i> عرض التفاصيل
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted">لا توجد حاليًا تقارير مرفوضة في الأرشيف.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

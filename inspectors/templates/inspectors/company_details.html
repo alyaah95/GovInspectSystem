@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block content %}
+<div dir="rtl" class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>تفاصيل {{ company.company_name }}</h2>
+        {% if user|is_manager %}
+            {% if company.assigned_to %}
+                <h3>معين للمفتش: {{ company.assigned_to }}</h3>
+            {% endif %}
+        {% endif %}
+        <div>
+            {% if user|is_manager %}
+            <a href="{% url 'edit_company' pk=company.pk %}" class="btn btn-primary me-2">
+                <i class="fas fa-edit"></i> تعديل
+            </a>
+            {% elif user|is_inspector %}
+                {% if company.status_by_inspector == 'assigned' %}
+                    <a href="{% url 'accept_assignment' pk=company.pk %}" class="btn btn-success btn-sm me-2">
+                        <i class="fas fa-check"></i> قبول
+                    </a>
+                    <a href="{% url 'decline_assignment' pk=company.pk %}" class="btn btn-danger btn-sm">
+                        <i class="fas fa-times"></i> رفض
+                    </a>
+                {% elif company.status_by_inspector == 'accepted' or company.status_by_inspector == 'in_progress' %}
+                    <a href="{% url 'edit_company' pk=company.pk %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i> تعديل البيانات الميدانية
+                    </a>
+                {% endif %}
+            {% endif %}
+
+            {% if user|is_manager %}
+            {% if company.status == 'deleted' %}
+            <form method="post" action="{% url 'show_company' pk=company.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success"
+                    onclick="return confirm('هل أنت متأكد من إعادة إظهار هذه الشركة؟')">
+                    <i class="fas fa-eye"></i> إظهار
+                </button>
+            </form>
+            {% else %}
+            <form method="post" action="{% url 'hide_company' pk=company.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger"
+                    onclick="return confirm('هل أنت متأكد من إخفاء هذه الشركة؟')">
+                    <i class="fas fa-eye-slash"></i> إخفاء
+                </button>
+            </form>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <hr>
+
+    <h3>تفاصيل المنشأة</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <p><strong>اسم المنشأة:</strong> {{ company.company_name }}</p>
+            <p><strong>رقم المنشأة:</strong> {{ company.company_number }}</p>
+            <p><strong>نوع النشاط:</strong> {{ company.activity_type }}</p>
+            <p><strong>المنطقة:</strong> {{ company.region }}</p>
+            <p><strong>الشارع:</strong> {{ company.street_name }}</p>
+        </div>
+        <div class="col-md-6">
+            <p><strong>رقم العقار:</strong> {{ company.building_number }}</p>
+            <p><strong>رقم عداد الكهرباء:</strong> {{ company.electricity_meter_number }}</p>
+            <p><strong>عدد العمال الفعلي:</strong> {{ company.actual_workers_count }}</p>
+            <p><strong>المنشأة عبارة عن:</strong> {{ company.get_establishment_type_display }}</p>
+            <p><strong>تاريخ الإضافة:</strong> {{ company.created_at|date:"Y-m-d H:i" }}</p>
+        </div>
+    </div>
+    <div class="mt-3">
+        <p><strong>وصف حجم المنشأة:</strong></p>
+        <p>{{ company.size_description }}</p>
+    </div>
+
+    ---
+
+    <h3>صور المنشأة</h3>
+    {% if company.companyimage_set.all %}
+    <div class="row">
+        {% for image in company.companyimage_set.all %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <img src="{{ image.image.url }}" class="card-img-top" alt="{{ image.description }}">
+                <div class="card-body">
+                    {% if image.description %}
+                    <p class="card-text">{{ image.description }}</p>
+                    {% else %}
+                    <p class="card-text text-muted">لا يوجد وصف لهذه الصورة.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>لا توجد صور لهذه الشركة.</p>
+    {% endif %}
+
+    ---
+
+
+   <div>
+        <a href="{% url 'add_inspection' pk=company.pk %}" class="btn btn-primary mb-4">
+            <i class="fas fa-plus-circle"></i> إضافة تقرير تفتيش جديد
+        </a>
+        
+        <hr>
+        
+        <h3 class="mt-4">تقارير التفتيش السابقة</h3>
+        {% if inspections %}
+        <div class="row">
+            {% for inspection in inspections %}
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">تقرير تفتيش - {{ forloop.counter }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ inspection.inspection_date|date:"d M, Y" }}</h6>
+                        <p class="card-text">المفتش: {{ inspection.user.username }}</p>
+                        <a href="{% url 'inspection_report_detail' pk=inspection.pk %}"
+                        class="btn btn-outline-primary btn-sm">عرض التفاصيل</a>
+                    
+                        {% comment %}
+                            يظهر الإخفاء للمدير دائماً، وللمفتش إذا كان التقرير مسودة
+                        {% endcomment %}
+                        {% if user|is_manager or user|is_inspector and inspection.status == 'draft' %}
+                        <a href="{% url 'soft_delete_inspection' pk=inspection.pk %}" class="btn btn-danger btn-sm"
+                            onclick="return confirm('هل أنت متأكد من إخفاء هذا التقرير؟')">
+                            <i class="fas fa-eye-slash"></i> إخفاء
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">لا يوجد أي تقرير تفتيش لهذه الشركة حتى الآن.</p>
+        {% endif %}
+
+   </div>
+
+    
+
+    <a href="{% url 'companies_list' %}" class="btn btn-secondary mt-3">العودة إلى قائمة الشركات</a>
+</div>
+{% endblock %}

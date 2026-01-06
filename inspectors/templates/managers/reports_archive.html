@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div dir="rtl" class="container my-5">
+    <h2 class="mb-4"><i class="fas fa-archive me-2"></i>{{ list_title }}</h2>
+    <p class="text-muted">التقارير النهائية المكتملة (المؤرشفة) والتقارير المرفوضة (المغلقة).</p>
+
+    <form method="GET" class="mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label for="id_q" class="form-label">البحث بالاسم / المفتش</label>
+                <input type="text" id="id_q" name="q" class="form-control" placeholder="اسم الشركة أو المفتش..."
+                    value="{{ query|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="id_start_date" class="form-label">من تاريخ التفتيش</label>
+                <input type="date" id="id_start_date" name="start_date" class="form-control"
+                    value="{{ start_date|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="id_end_date" class="form-label">إلى تاريخ التفتيش</label>
+                <input type="date" id="id_end_date" name="end_date" class="form-control" value="{{ end_date|default:'' }}">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary flex-grow-1" type="submit">
+                    <i class="fas fa-search me-1"></i> بحث
+                </button>
+                <a href="{% url 'reports_archive' %}" class="btn btn-outline-secondary ms-2">مسح</a>
+            </div>
+        </div>
+    </form>
+    
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted">عدد التقارير: <span class="fw-bold">{{ inspections|length }}</span></span>
+        <div>
+            <label for="sort-order-select" class="me-2">الترتيب حسب:</label>
+            <select id="sort-order-select" class="form-select d-inline-block w-auto">
+                <option value="-inspection_date" {% if sort_order == "-inspection_date" %}selected{% endif %}>الأحدث أولاً</option>
+                <option value="inspection_date" {% if sort_order == "inspection_date" %}selected{% endif %}>الأقدم أولاً</option>
+            </select>
+        </div>
+    </div>
+    
+    <hr>
+
+    {% if inspections %}
+    <div class="table-responsive shadow-sm">
+        <table class="table table-hover table-striped">
+            <thead class="bg-light">
+                <tr>
+                    <th>المنشأة</th>
+                    <th>المفتش</th>
+                    <th>رقم هوية المفتش</th>
+                    <th>تاريخ التفتيش</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات / الملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inspection in inspections %}
+                <tr class="{% if inspection.status == 'rejected_closed' %}table-danger-light{% endif %}">
+                    <td>
+                        <a href="{% url 'company_details' pk=inspection.company.pk %}" class="fw-bold text-decoration-none">
+                            {{ inspection.company.company_name }}
+                        </a>
+                    </td>
+                    <td>{{ inspection.inspector.get_full_name|default:inspection.inspector.username }}</td>
+                    <td>{{ inspection.inspector.user_id }}</td>
+                    <td>{{ inspection.inspection_date|date:"Y-m-d" }}</td>
+                    <td>
+                        {% if inspection.status == 'archived' %}
+                            <span class="badge bg-success py-2">مكتمل ومؤرشف</span>
+                        {% elif inspection.status == 'rejected_closed' %}
+                            <span class="badge bg-danger py-2">مرفوض (مغلق)</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if inspection.status == 'rejected_closed' %}
+                            <p class="mb-1 text-danger small">
+                                <i class="fas fa-times-circle me-1"></i> ملاحظات: {{ inspection.rejection_notes|truncatechars:100|default:"لا توجد ملاحظات." }}
+                            </p>
+                        {% endif %}
+                        <a href="{% url 'inspection_report_detail' pk=inspection.pk %}" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-eye me-1"></i> عرض التقرير
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle me-2"></i> لا توجد تقارير تفتيش مطابقة لمرشحات البحث في الأرشيف.
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+    /* إضافة لون خفيف لصف التقارير المرفوضة لتمييزها */
+    .table-danger-light {
+        background-color: #fcebeb !important; /* لون أحمر فاتح جداً */
+    }
+</style>
+
+<script>
+    // منطق الترتيب يحتاج للارتباط بزر البحث أو عمل إعادة توجيه
+    document.getElementById('sort-order-select').addEventListener('change', function () {
+        const url = new URL(window.location.href);
+        url.searchParams.set('sort_order', this.value);
+        // للحفاظ على باقي معاملات البحث
+        window.location.href = url.href;
+    });
+</script>
+{% endblock %}

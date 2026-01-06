@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div dir="rtl" class="container mt-4">
+    <h2>الإشعارات</h2>
+    {% if notifications %}
+        <div class="list-group">
+            {% for notification in notifications %}
+            <a href="{% if notification.related_company %}{% url 'company_details' pk=notification.related_company.pk %}{% else %}#{% endif %}" class="list-group-item list-group-item-action {% if not notification.is_read %}fw-bold bg-light{% endif %}">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">{{ notification.title }}</h5>
+                    <small>{{ notification.created_at|timesince }}</small>
+                </div>
+                <p class="mb-1">{{ notification.message }}</p>
+                {% if notification.related_company %}
+                <small>الشركة: {{ notification.related_company.company_name }}</small>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        لا توجد إشعارات جديدة.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

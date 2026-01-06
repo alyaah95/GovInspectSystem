@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير تفتيش - {{ company.company_name }}</title>
+    <style>
+        /* تنسيق عام للجسم */
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 11px;
+            margin: 1cm; /* يمكنك زيادة هذا الهامش حسب الحاجة */
+            direction: rtl;
+        }
+
+        /* تنسيق العناوين */
+        h1 {
+            text-align: center;
+            color: #000;
+            margin-bottom: 30px; /* زيادة المسافة بعد العنوان الرئيسي */
+            font-size: 24px;
+        }
+
+        h4 {
+            color: #000;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+            margin-top: 40px; /* زيادة المسافة قبل العناوين الفرعية */
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        /* تنسيق الصفوف التي تحتوي على الحقول */
+        .info-row {
+            margin-bottom: 15px; /* زيادة المسافة بين الصفوف */
+            line-height: 1.6;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        /* تنسيق كل حقل على حدة */
+        .info-item {
+            width: 48%;
+        }
+
+        .info-item strong {
+            font-weight: bold;
+            display: inline-block;
+            width: 140px; /* العرض الثابت لعنوان الحقل */
+            flex-shrink: 0;
+        }
+
+        /* تنسيق بيانات المندوب */
+        .mandoub-info {
+            padding-top: 15px;
+            margin-top: 15px;
+            border-top: 1px dashed #ccc;
+        }
+        .mandoub-phone{
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="text-align: center;">
+        <h1>تقرير تفتيش</h1>
+        <p>تاريخ الطباعة: {% now "Y-m-d H:i" %}</p>
+    </div>
+
+    <h4>معلومات الشركة</h4>
+    <div style="margin-bottom: 15px;">
+        <div class="info-row">
+            <div class="info-item"><strong>اسم المنشأة:</strong> <span>{{ company.company_name }}</span></div>
+            <div class="info-item"><strong>رقم المنشأة:</strong> <span>{{ company.company_number }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-item"><strong>المنطقة:</strong> <span>{{ company.region }}</span></div>
+            <div class="info-item"><strong>اسم الشارع:</strong> <span>{{ company.street_name }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-item"><strong>رقم العقار:</strong> <span>{{ company.building_number }}</span></div>
+            <div class="info-item"><strong>نوع النشاط:</strong> <span>{{ company.activity_type }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-item"><strong>رقم عداد الكهرباء:</strong> <span>{{ company.electricity_meter_number }}</span></div>
+            <div class="info-item"><strong>عدد العمال الفعلي:</strong> <span>{{ company.actual_workers_count }}</span>
+            </div>
+        </div>
+        <div class="info-row">
+            <div class="info-item full-width"><strong>نوع المنشأة:</strong> <span> {{ company.get_establishment_type_display }} </span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-item full-width"><strong>وصف الحجم:</strong> <span>{{ company.size_description }}</span>
+            </div>
+        </div>
+    </div>
+
+    <h4>بيانات التفتيش</h4>
+    <div style="margin-bottom: 15px;">
+        <div class="info-row">
+            <div class="info-item"><strong>تاريخ التفتيش:</strong> <span>{{ inspection.inspection_date|date:"Y-m-d H:i" }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-item"><strong>تقدير حجم العمالة:</strong> <span>{{ inspection.workers_size_estimation }}</span></div>
+            <div class="info-item"><strong>مطابقة الرخصة للموقع:</strong> <span>{{ inspection.get_license_compliance_display }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-item"><strong>العنصر النسائي:</strong> <span>{{ inspection.get_female_workers_element_display }}</span></div>
+            <div class="info-item"><strong>استخدام عمال دون ترخيص:</strong> <span>{{ inspection.get_unlicensed_workers_display }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-item"><strong>لائحة الجزاءات:</strong> <span>{{ inspection.get_penalties_regulation_display }}</span></div>
+            <div class="info-item"><strong>لائحة تنظيم العمل:</strong> <span>{{ inspection.get_work_regulation_display }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-item"><strong>الاحتفاظ بملف خاص لكل عامل:</strong> <span>{{ inspection.get_worker_file_maintenance_display }}</span></div>
+            <div class="info-item"><strong>تشغيل العامل أكثر من الساعات المحددة:</strong> <span>{{ inspection.get_extended_working_hours_display }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-item"><strong>تشغيل العامل أكثر من جمعتين متتاليتين:</strong> <span>{{ inspection.get_consecutive_shifts_display }}</span></div>
+            <div class="info-item"><strong>جدول ساعات العمل والراحة الأسبوعية:</strong> <span>{{ inspection.get_weekly_rest_schedule_display }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-item"><strong>عدد ورديات العمل:</strong> <span>{{ inspection.get_number_of_shifts_display }}</span></div>
+            <div class="info-item"><strong>رأي المفتش:</strong> <span>{{ inspection.inspector_opinion }}</span></div>
+        </div>
+    </div>
+
+    <h4>بيانات المندوب</h4>
+    <div style="margin-bottom: 15px;">
+        <div class="mandoub-info">
+            <div class="info-item"><strong>اسم المندوب:</strong> <span>{{ inspection.mandoub_name_1 }}</span></div>
+            <div class="info-item mandoub-phone"><strong>رقم الجوال:</strong> <span>{{ inspection.mandoub_phone_1 }}</span></div>
+        </div>
+        <div class="mandoub-info">
+            <div class="info-item"><strong>اسم المندوب:</strong> <span>{{ inspection.mandoub_name_2 }}</span></div>
+            <div class="info-item mandoub-phone" ><strong>رقم الجوال:</strong> <span>{{ inspection.mandoub_phone_2 }}</span></div>
+        </div>
+    </div>
+</body>
+
+</html>

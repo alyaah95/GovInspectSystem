@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div dir="rtl" class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>قائمة الشركات المخفية</h2>
+        <a href="{% url 'companies_list' %}" class="btn btn-secondary">
+            <i class="fas fa-list"></i> العودة لقائمة الشركات
+        </a>
+    </div>
+
+    <form method="get" class="mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label for="id_q" class="form-label">البحث باسم الشركة أو المنطقة</label>
+                <input type="text" id="id_q" name="q" class="form-control" value="{{ query|default_if_none:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="id_start_date" class="form-label">من تاريخ</label>
+                <input type="date" id="id_start_date" name="start_date" class="form-control"
+                    value="{{ start_date|default_if_none:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="id_end_date" class="form-label">إلى تاريخ</label>
+                <input type="date" id="id_end_date" name="end_date" class="form-control"
+                    value="{{ end_date|default_if_none:'' }}">
+            </div>
+            <div class="col-md-1 d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary me-2">بحث</button>
+                {% if query or start_date or end_date %}
+                <a href="{% url 'hidden_companies_list' %}" class="btn btn-outline-secondary">مسح الفلترة</a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted">عدد الشركات المخفية: {{ companies|length }}</span>
+        <div>
+            <label for="sort-order-select" class="me-2">الترتيب:</label>
+            <select id="sort-order-select" class="form-select d-inline-block w-auto">
+                <option value="-created_at" {% if sort_order == "-created_at" %}selected{% endif %}>الأحدث أولاً</option>
+                <option value="created_at" {% if sort_order == "created_at" %}selected{% endif %}>الأقدم أولاً</option>
+            </select>
+        </div>
+    </div>
+
+    {% if companies %}
+    <ul class="list-group">
+        {% for company in companies %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <a href="{% url 'company_details' pk=company.pk %}">{{ company.company_name }}</a>
+                <p class="text-muted mb-1">{{ company.region }} - {{ company.street_name }}</p>
+                <small class="text-muted">تاريخ الإضافة: {{ company.created_at|date:"Y-m-d" }}</small>
+            </div>
+            <form method="post" action="{% url 'show_company' pk=company.pk %}" class="d-inline-block">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm"
+                    onclick="return confirm('هل أنت متأكد من إعادة إظهار هذه الشركة في القائمة الرئيسية؟')">
+                    <i class="fas fa-eye"></i> إظهار
+                </button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="alert alert-info mt-3" role="alert">
+        لا توجد شركات مخفية.
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    document.getElementById('sort-order-select').addEventListener('change', function () {
+        const url = new URL(window.location.href);
+        url.searchParams.set('sort_order', this.value);
+        window.location.href = url.href;
+    });
+</script>
+{% endblock %}

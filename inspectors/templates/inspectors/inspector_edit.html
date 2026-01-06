@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تعديل بيانات المفتش: {{ inspector.username }}</title>
+</head>
+<body>
+    <h1>تعديل بيانات المفتش: {{ inspector.first_name }} {{ inspector.last_name }}</h1>
+    
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <form method="post" novalidate> 
+        {% csrf_token %}
+        
+        <p>
+            <label>اسم المستخدم (لا يمكن تعديله):</label>
+            <input type="text" value="{{ inspector.username }}" disabled>
+        </p>
+
+        {{ form.as_p }}
+        
+        <button type="submit">حفظ التعديلات</button>
+    </form>
+    
+    <p><a href="{% url 'inspectors_list' %}">العودة إلى قائمة المفتشين</a></p>
+</body>
+</html>

@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div dir="rtl" class="container mt-4">
+    <h2>تعديل تقرير تفتيش لشركة: {{ inspection.company.company_name }}</h2>
+    <p class="text-muted">بيانات الشركة: {{ company.region }}, {{ company.street_name }}, {{ company.building_number }}
+    </p>
+
+    <form method="POST" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        <h3 class="mt-4">معلومات التقرير</h3>
+        <div class="border p-3 rounded">
+            {{ form.as_p }}
+        </div>
+
+        <h3 class="mt-4">صور التقرير</h3>
+        {{ formset.management_form }}
+
+        <div id="image-form-container">
+            {% for form in formset %}
+            <div class="image-upload-container mb-4 single-image-form" id="form-{{ forloop.counter0 }}"
+                style="position: relative;">
+
+                <button type="button" class="btn btn-outline-danger btn-sm remove-form-btn"
+                    style="position: absolute; top: 5px; left: 5px;">
+                    <i class="fas fa-times"></i>
+                </button>
+
+                {{ form.id }}
+
+                <div class="mb-3">
+                    <label class="form-label">صورة التقرير:</label>
+                    <div class="input-group">
+                        <input type="file" name="{{ form.image.html_name }}" id="{{ form.image.id_for_label }}"
+                            class="form-control image-input" accept="image/*">
+
+                        <label class="input-group-text btn btn-primary file-label" for="{{ form.image.id_for_label }}">
+                            {% if form.instance.image %}
+                            <i class="fas fa-check"></i> {{ form.instance.image.name|cut:"inspectors/company_images/" }}
+                            {% else %}
+                            <i class="fas fa-upload"></i> اختر صورة
+                            {% endif %}
+                        </label>
+                    </div>
+                    {% if form.instance.image %}
+                    <img src="{{ form.instance.image.url }}" alt="معاينة الصورة" class="img-preview mt-2"
+                        style="max-width: 200px; display: block;" />
+                    {% else %}
+                    <img src="" alt="معاينة الصورة" class="img-preview mt-2" style="max-width: 200px; display: none;" />
+                    {% endif %}
+                    <small class="text-danger">{{ form.image.errors }}</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">وصف الصورة:</label>
+                    {{ form.description }}
+                    <small class="text-danger">{{ form.description.errors }}</small>
+                </div>
+
+                {% if form.instance.pk %}
+                <div class="d-none">
+                    {{ form.DELETE }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <button type="button" id="add-image-form" class="btn btn-secondary mt-2">
+            <i class="fas fa-plus"></i> إضافة صورة أخرى
+        </button>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">حفظ التقرير</button>
+            <a href="{% url 'inspection_report_detail' pk=inspection.pk %}" class="btn btn-outline-danger">إلغاء</a>
+        </div>
+    </form>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const container = document.getElementById('image-form-container');
+        const addButton = document.getElementById('add-image-form');
+        const totalForms = document.getElementById('id_images-TOTAL_FORMS');
+        const initialForms = container.querySelectorAll('.single-image-form').length;
+        let formCount = parseInt(totalForms.value);
+
+        // وظيفة لتحديث أسماء الحقول بعد إضافة/حذف نموذج
+        function updateFormIndices() {
+            const forms = container.querySelectorAll('.single-image-form');
+            forms.forEach((form, index) => {
+                const prefix = `images-${index}`;
+                form.id = `form-${index}`;
+
+                // تحديث حقول النموذج
+                const inputs = form.querySelectorAll('input, textarea, label');
+                inputs.forEach(input => {
+                    if (input.id) input.id = input.id.replace(/images-\d+-/, prefix + '-');
+                    if (input.name) input.name = input.name.replace(/images-\d+-/, prefix + '-');
+                    if (input.htmlFor) input.htmlFor = input.htmlFor.replace(/images-\d+-/, prefix + '-');
+                });
+            });
+            totalForms.value = forms.length;
+        }
+
+        // وظيفة التعامل مع حذف نموذج بالكامل
+        function handleRemoveForm(button) {
+            const form = button.closest('.single-image-form');
+            const deleteInput = form.querySelector('input[name$="-DELETE"]');
+
+            if (deleteInput) {
+                // ده نموذج كان موجود بالفعل
+                deleteInput.checked = true; // بنعلم على حقل الحذف
+                form.style.display = 'none'; // وبنخفي النموذج من العرض
+            } else {
+                // ده نموذج جديد مضاف
+                form.remove();
+            }
+            updateFormIndices();
+        }
+
+        // وظيفة للتعامل مع تغيير ملف الصورة
+        function handleFileInput(event) {
+            const input = event.target;
+            const file = input.files[0];
+            const form = input.closest('.single-image-form');
+            const label = form.querySelector('.file-label');
+            const previewImg = form.querySelector('.img-preview');
+
+            if (file) {
+                label.innerHTML = `<i class="fas fa-check"></i> ${file.name}`;
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // إذا تم إلغاء اختيار الصورة، نرجع الحالة الأصلية
+                label.innerHTML = `<i class="fas fa-upload"></i> اختر صورة`;
+                previewImg.src = '';
+                previewImg.style.display = 'none';
+            }
+        }
+
+        // إضافة الأحداث لكل النماذج الموجودة بالفعل
+        container.querySelectorAll('.single-image-form').forEach(form => {
+            const removeBtn = form.querySelector('.remove-form-btn');
+            const fileInput = form.querySelector('.image-input');
+
+            removeBtn.addEventListener('click', () => handleRemoveForm(removeBtn));
+            fileInput.addEventListener('change', handleFileInput);
+        });
+
+        // حدث زر إضافة نموذج جديد
+        addButton.addEventListener('click', function () {
+            const emptyFormTemplate = `
+                <div class="image-upload-container mb-4 single-image-form" style="position: relative;">
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-form-btn" style="position: absolute; top: 5px; left: 5px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="mb-3">
+                        <label class="form-label">صورة الشركة:</label>
+                        <div class="input-group">
+                            <input type="file" name="images-${formCount}-image" id="id_images-${formCount}-image" class="form-control image-input" accept="image/*">
+                            <label class="input-group-text btn btn-primary file-label" for="id_images-${formCount}-image">
+                                <i class="fas fa-upload"></i> اختر صورة
+                            </label>
+                        </div>
+                        <img src="" alt="معاينة الصورة" class="img-preview mt-2" style="max-width: 200px; display: none;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">وصف الصورة:</label>
+                        <textarea name="images-${formCount}-description" cols="40" rows="10" class="form-control" id="id_images-${formCount}-description"></textarea>
+                    </div>
+                </div>
+            `;
+            const newFormDiv = document.createElement('div');
+            newFormDiv.innerHTML = emptyFormTemplate.trim();
+            const newForm = newFormDiv.firstChild;
+
+            container.appendChild(newForm);
+            formCount++;
+            totalForms.value = formCount;
+
+            // إضافة الأحداث للنموذج الجديد
+            const removeBtn = newForm.querySelector('.remove-form-btn');
+            const fileInput = newForm.querySelector('.image-input');
+            removeBtn.addEventListener('click', () => handleRemoveForm(removeBtn));
+            fileInput.addEventListener('change', handleFileInput);
+
+            // تحديث المؤشرات بعد إضافة النموذج الجديد
+            updateFormIndices();
+        });
+    });
+</script>
+
+{% endblock %}

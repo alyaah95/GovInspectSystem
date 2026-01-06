@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}تقارير بانتظار الموافقة{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="mb-4">{{ list_title }}</h2>
+    <p class="text-muted">هذه القائمة تعرض التقارير التي أرسلها المفتشون وهي بانتظار قرارك.</p>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                
+                <div class="col-md-5">
+                    <label for="searchQuery" class="form-label">البحث عن تقرير</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="searchQuery" 
+                           name="q" 
+                           placeholder="اسم الشركة أو المفتش..."
+                           value="{{ search_query|default:'' }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label for="dateFrom" class="form-label">من تاريخ (التفتيش)</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="dateFrom" 
+                           name="date_from"
+                           value="{{ date_from|default:'' }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label for="dateTo" class="form-label">إلى تاريخ (التفتيش)</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="dateTo" 
+                           name="date_to"
+                           value="{{ date_to|default:'' }}">
+                </div>
+
+                <div class="col-md-1 d-flex align-items-center">
+                    <button type="submit" class="btn btn-primary w-100 me-2" title="بحث">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <a href="{% url 'manager_review_list' %}" class="btn btn-outline-secondary w-100" title="إعادة تعيين">
+                        <i class="fas fa-redo"></i>
+                    </a>
+                </div>
+
+                <!-- الترتيب -->
+                <div class="col-md-2">
+                    <label for="orderBy" class="form-label">الترتيب</label>
+                    <select class="form-select" id="orderBy" name="order_by">
+                        <option value="-inspection_date" {% if current_order == '-inspection_date' %}selected{% endif %}>  (الأحدث أولاً)</option>
+                        <option value="inspection_date" {% if current_order == 'inspection_date' %}selected{% endif %}>  (الأقدم أولاً)</option>
+                    </select>
+                </div>
+
+            </form>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>المنشأة</th>
+                    <th>المفتش</th>
+                    <th>رقم هوية المفتش</th>
+                    <th>تاريخ التفتيش</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inspection in inspections %}
+                <tr>
+                    <td>
+                        <a href="{% url 'company_details' pk=inspection.company.pk %}">
+                            {{ inspection.company.company_name }}
+                        </a>
+                    </td>
+                    <td>{{ inspection.inspector.username }}</td>
+                    <td>{{ inspection.inspector.user_id }}</td>
+                    <td>{{ inspection.inspection_date|date:"Y-m-d" }}</td>
+                    <td><span class="badge badge-warning">بانتظار الموافقة</span></td>
+                    <td>
+                        <a href="{% url 'inspection_report_detail' pk=inspection.pk %}" class="btn btn-sm btn-info me-2">
+                            <i class="fas fa-eye"></i> مراجعة
+                        </a>
+                        <form method="post" action="{% url 'approve_inspection' pk=inspection.pk %}" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من الموافقة على التقرير؟ سيتم أرشفته بشكل نهائي.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success me-2">
+                                <i class="fas fa-check-circle"></i> موافقة
+                            </button>
+                        </form>
+                        <a href="{% url 'reject_inspection' pk=inspection.pk %}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-times-circle"></i> رفض
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">لا توجد تقارير جديدة بانتظار المراجعة.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<div dir="rtl" class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2> 
+            {% if user|is_manager %}
+                قائمة الشركات (للمدير)
+            {% else %}
+                الشركات المعينة لك
+            {% endif %}
+        </h2>
+        {% if user|is_manager %}
+        <a href="{% url 'add_company' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> إضافة شركة جديدة
+        </a>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+    <div class="alert alert-info" role="alert">
+        {% for message in messages %}{{ message }}{% endfor %}
+    </div>
+    {% endif %}
+
+
+    <form method="get" class="mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label for="id_q" class="form-label">البحث باسم الشركة أو المنطقة</label>
+                <input type="text" id="id_q" name="q" class="form-control" value="{{ query|default_if_none:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="id_start_date" class="form-label">من تاريخ الإضافة</label>
+                <input type="date" id="id_start_date" name="start_date" class="form-control"
+                    value="{{ start_date|default_if_none:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="id_end_date" class="form-label">إلى تاريخ الإضافة</label>
+                <input type="date" id="id_end_date" name="end_date" class="form-control"
+                    value="{{ end_date|default_if_none:'' }}">
+            </div>
+            <div class="col-md-3 d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary me-2">بحث</button>
+                {% if query or start_date or end_date %}
+                <a href="{% url 'companies_list' %}" class="btn btn-outline-secondary">مسح الفلترة</a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted">عدد الشركات: {{ companies|length }}</span>
+        <div>
+            <label for="sort-order-select" class="me-2">الترتيب:</label>
+            <select id="sort-order-select" class="form-select d-inline-block w-auto">
+                <option value="-created_at" {% if sort_order == "-created_at" %}selected{% endif %}>الأحدث أولاً</option>
+                <option value="created_at" {% if sort_order == "created_at" %}selected{% endif %}>الأقدم أولاً</option>
+            </select>
+        </div>
+    </div>
+
+    {% if companies %}
+    <ul class="list-group">
+        {% for company in companies %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <a href="{% url 'company_details' pk=company.pk %}">{{ company.company_name }}</a>
+                <p class="text-muted mb-1">{{ company.region }} - {{ company.street_name }}</p>
+                <small class="text-muted">
+                    تاريخ الإضافة: {{ company.created_at|date:"Y-m-d" }}
+                    
+                    حالة التعيين: <span class="badge bg-primary">{{ company.get_status_by_inspector_display }}</span>
+                    {% if user|is_manager %}
+                        {% if company.assigned_to %}
+                            - معين للمفتش: <strong>{{ company.assigned_to }}</strong>
+                        {% endif %}
+                    {% endif %}
+
+                </small>
+            </div>
+            <div>
+                {% if user|is_manager %}
+                <a href="{% url 'company_details' pk=company.pk %}" class="btn btn-info btn-sm">
+                    <i class="fas fa-eye"></i> عرض
+                </a>
+                <form method="post" action="{% url 'hide_company' pk=company.pk %}" class="d-inline-block">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                        onclick="return confirm('هل أنت متأكد من إخفاء هذه الشركة؟')">
+                        <i class="fas fa-eye-slash"></i> إخفاء
+                    </button>
+                </form>
+
+                {% elif user|is_inspector %}
+                {% if company.status_by_inspector == 'assigned' %}
+                    <a href="{% url 'accept_assignment' pk=company.pk %}" class="btn btn-success btn-sm me-2">
+                        <i class="fas fa-check"></i> قبول
+                    </a>
+                    <a href="{% url 'decline_assignment' pk=company.pk %}" class="btn btn-danger btn-sm">
+                        <i class="fas fa-times"></i> رفض
+                    </a>
+                {% elif company.status_by_inspector == 'accepted' or company.status_by_inspector == 'in_progress' %}
+                    <a href="{% url 'edit_company' pk=company.pk %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i> تعديل البيانات الميدانية
+                    </a>
+                {% endif %}
+                <a href="{% url 'company_details' pk=company.pk %}" class="btn btn-info btn-sm">
+                    <i class="fas fa-eye"></i> عرض
+                </a>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    {% endif %}
+
+</div>
+
+<script>
+    document.getElementById('sort-order-select').addEventListener('change', function () {
+        const url = new URL(window.location.href);
+        url.searchParams.set('sort_order', this.value);
+        window.location.href = url.href;
+    });
+</script>
+{% endblock %}

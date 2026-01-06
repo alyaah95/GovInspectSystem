@@ -1,0 +1,14 @@
+{% autoescape off %}
+مرحباً {{ user.username }},
+
+تم إنشاء حسابك في نظام GovInspectSystem.
+
+لإنشاء كلمة مرور خاصة بك وتفعيل حسابك، يرجى النقر على الرابط التالي:
+
+{{ protocol }}://{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}
+
+إذا لم تتمكن من النقر على الرابط، يرجى نسخه ولصقه في متصفح الويب الخاص بك.
+
+شكراً،
+فريق نظام GovInspectSystem
+{% endautoescape %}

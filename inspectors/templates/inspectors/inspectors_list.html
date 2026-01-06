@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block content %}
+<div dir="rtl" class="container mt-5">
+    <h2 class="mb-4 text-primary"><i class="fas fa-users-cog me-2"></i> {{ page_title }}</h2>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-center">
+                
+                <div class="col-md-7">
+                    <label for="searchQuery" class="form-label visually-hidden">بحث</label>
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               id="searchQuery" 
+                               name="q" 
+                               placeholder="البحث بالاسم، اسم المستخدم، البريد، أو الهوية..."
+                               value="{{ search_query|default:'' }}">
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="filterStatus" class="form-label visually-hidden">حالة التصفية</label>
+                    <select class="form-select" id="filterStatus" name="status" onchange="this.form.submit()">
+                        <option value="">-- تصفية حسب الحالة --</option>
+                        <option value="active" {% if filter_status == 'active' %}selected{% endif %}>نشط</option>
+                        <option value="inactive" {% if filter_status == 'inactive' %}selected{% endif %}>غير نشط</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2"> 
+                    <label for="orderBy" class="form-label visually-hidden">الترتيب</label>
+                    <select class="form-select" id="orderBy" name="order_by">
+                        <option value="last_name" {% if current_order == 'last_name' %}selected{% endif %}>الاسم (أبجدي)</option>
+                        <option value="-last_name" {% if current_order == '-last_name' %}selected{% endif %}>الاسم (عكس أبجدي)</option>
+                        <option value="-is_active" {% if current_order == '-is_active' %}selected{% endif %}>الحالة (النشط أولاً)</option>
+                        <option value="-date_joined" {% if current_order == '-date_joined' %}selected{% endif %}>تاريخ الانضمام (الأحدث أولاً)</option>
+                        <option value="date_joined" {% if current_order == 'date_joined' %}selected{% endif %}>تاريخ الانضمام (الأقدم أولاً)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-search me-1"></i> بحث
+                    </button>
+                    <a href="{% url 'inspectors_list' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-redo me-1"></i> إعادة تعيين
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {% if inspectors %}
+    <div class="table-responsive">
+        <table class="table table-hover table-striped shadow-sm">
+            <thead class="bg-dark text-white">
+                <tr>
+                    <th>الاسم الكامل</th>
+                    <th>اسم المستخدم</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>رقم الهوية</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inspector in inspectors %}
+                <tr>
+                    <td>{{ inspector.get_full_name }}</td>
+                    <td>{{ inspector.username }}</td>
+                    <td>{{ inspector.email }}</td>
+                    <td>{{ inspector.user_id }}</td>
+                    <td>
+                        {% if inspector.is_active %}
+                            <span class="badge bg-success">نشط</span>
+                        {% else %}
+                            <span class="badge bg-danger">غير نشط</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'inspector_detail' pk=inspector.pk %}" class="btn btn-sm btn-info text-white">
+                            <i class="fas fa-eye me-1"></i> عرض التفاصيل
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-warning text-center" role="alert">
+        لا يوجد مفتشون مسجلون في النظام حالياً.
+    </div>
+    {% endif %}
+
+    <div class="mt-4 text-center">
+        <a href="{% url 'add_inspector' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-1"></i> إضافة مفتش جديد
+        </a>
+    </div>
+</div>
+{% endblock %}

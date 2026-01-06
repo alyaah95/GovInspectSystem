@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div dir="rtl" class="container mt-4">
+    <h2>إضافة تقرير تفتيش جديد لشركة: {{ company.company_name }}</h2>
+    <p class="text-muted">بيانات الشركة: {{ company.region }}, {{ company.street_name }}, {{ company.building_number }}
+    </p>
+
+    <form method="POST" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        <h3 class="mt-4">معلومات التقرير</h3>
+        <div class="border p-3 rounded">
+            {{ inspection_form.as_p }}
+        </div>
+
+        <h3 class="mt-4">صور التقرير</h3>
+        <div id="image-form-container" class="border p-3 rounded">
+            {{ image_formset.management_form }}
+            {% for image_form in image_formset %}
+            <div class="card mb-3 single-image-form">
+                <div class="card-body">
+                    {% if not image_form.instance.pk %}
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-form-btn"
+                        style="position: absolute; top: 10px; left: 10px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    {% endif %}
+
+                    <div class="image-preview-wrapper mb-2" style="display: none;">
+                        <img src="" class="img-thumbnail image-preview"
+                            style="max-width: 150px; height: 100px; object-fit: cover;">
+                       
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-group-text btn btn-primary" for="{{ image_form.image.id_for_label }}">
+                            <span class="d-inline-block">اختر صورة</span>
+                        </label>
+                        {{ image_form.image }}
+                        <span class="form-control file-name-display text-muted"
+                            id="file-name-display-{{ forloop.counter0 }}">
+                            لا يوجد ملف تم اختياره.
+                        </span>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label class="form-label">وصف الصورة:</label>
+                        {{ image_form.description }}
+                    </div>
+                    {% if image_form.errors %}
+                    <div class="alert alert-danger mt-2">
+                        {% for field, errors in image_form.errors.items %}
+                        {% for error in errors %}
+                        {{ error }}
+                        {% endfor %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <button type="button" id="add-image-form" class="btn btn-outline-secondary mt-2">
+            <i class="fas fa-plus"></i> إضافة صورة أخرى
+        </button>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">حفظ التقرير</button>
+            <a href="{% url 'company_details' pk=company.pk %}" class="btn btn-outline-danger">إلغاء</a>
+        </div>
+    </form>
+</div>
+
+<template id="empty-form-template">
+    <div class="card mb-3 single-image-form">
+        <div class="card-body">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-form-btn"
+                style="position: absolute; top: 10px; left: 10px;">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="image-preview-wrapper mb-2" style="display: none;">
+                <img src="" class="img-thumbnail image-preview"
+                    style="max-width: 150px; height: 100px; object-fit: cover;">
+                
+            </div>
+            <div class="input-group">
+                <label class="input-group-text btn btn-primary" for="id_images-__prefix__-image">
+                    <span class="d-inline-block">اختر صورة</span>
+                </label>
+                <input type="file" name="images-__prefix__-image" class="form-control" id="id_images-__prefix__-image">
+                <span class="form-control file-name-display text-muted" id="file-name-display-__prefix__">
+                    لا يوجد ملف تم اختياره.
+                </span>
+            </div>
+            <div class="mb-3 mt-3">
+                <label class="form-label">وصف الصورة:</label>
+                <input type="text" name="images-__prefix__-description" class="form-control"
+                    id="id_images-__prefix__-description">
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const container = document.getElementById('image-form-container');
+        const addButton = document.getElementById('add-image-form');
+        const totalFormsInput = document.querySelector('#id_images-TOTAL_FORMS');
+        const emptyFormTemplate = document.querySelector('#empty-form-template');
+
+        function updateFileName(input) {
+            const formIndex = input.id.split('-')[1];
+            const fileNameSpan = document.getElementById(`file-name-display-${formIndex}`);
+            const labelSpan = input.closest('.input-group').querySelector('.input-group-text span');
+            const previewWrapper = input.closest('.single-image-form').querySelector('.image-preview-wrapper');
+            const previewImage = input.closest('.single-image-form').querySelector('.image-preview');
+
+            if (input.files.length > 0) {
+                fileNameSpan.textContent = input.files[0].name;
+                fileNameSpan.classList.remove('text-muted');
+                labelSpan.textContent = 'تغيير الصورة';
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImage.src = e.target.result;
+                    previewWrapper.style.display = 'flex';
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                fileNameSpan.textContent = 'لا يوجد ملف تم اختياره.';
+                fileNameSpan.classList.add('text-muted');
+                labelSpan.textContent = 'اختر صورة';
+
+                previewImage.src = '';
+                previewWrapper.style.display = 'none';
+            }
+        }
+
+        container.addEventListener('change', function (e) {
+            if (e.target.matches('input[type="file"]')) {
+                updateFileName(e.target);
+            }
+        });
+
+       
+
+        container.addEventListener('click', function (e) {
+            if (e.target.closest('.remove-form-btn')) {
+                const formToRemove = e.target.closest('.single-image-form');
+                formToRemove.remove();
+
+                let totalForms = parseInt(totalFormsInput.value);
+                totalFormsInput.value = totalForms - 1;
+            }
+        });
+
+        addButton.addEventListener('click', function () {
+            let totalForms = parseInt(totalFormsInput.value);
+
+            const emptyForm = emptyFormTemplate.content.cloneNode(true);
+            const newIndex = totalForms;
+
+            const newFormElements = emptyForm.querySelectorAll('[id], [name], [for]');
+            newFormElements.forEach(el => {
+                if (el.id) el.id = el.id.replace(/__prefix__/g, newIndex);
+                if (el.name) el.name = el.name.replace(/__prefix__/g, newIndex);
+                if (el.htmlFor) el.htmlFor = el.htmlFor.replace(/__prefix__/g, newIndex);
+            });
+
+            container.appendChild(emptyForm);
+            totalFormsInput.value = totalForms + 1;
+        });
+    });
+</script>
+<style>
+    .single-image-form {
+        border-left: 3px solid #0d6efd;
+        position: relative;
+    }
+
+    .input-group-text.btn-primary {
+        cursor: pointer;
+    }
+
+    .file-name-display {
+        background-color: var(--bs-body-bg);
+        border: var(--bs-border-width) solid var(--bs-border-color);
+        border-right: none;
+        padding-left: 10px;
+        display: flex;
+        align-items: center;
+        border-top-left-radius: var(--bs-border-radius);
+        border-bottom-left-radius: var(--bs-border-radius);
+    }
+
+    .file-name-display.text-muted {
+        color: #6c757d;
+    }
+
+    .image-preview-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 5px;
+        border-radius: 5px;
+        border: 1px solid #dee2e6;
+        width: 250px;
+    }
+
+    .image-preview-wrapper .image-preview {
+        max-width: 100px;
+        max-height: 100px;
+    }
+
+    .image-preview-wrapper .clear-image-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        line-height: 1;
+        padding: 2px 5px;
+        z-index: 10;
+    }
+
+    .remove-form-btn {
+        z-index: 10;
+    }
+</style>
+{% endblock %}

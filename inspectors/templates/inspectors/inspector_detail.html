@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block content %}
+<div dir="rtl" class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0"><i class="fas fa-user-tie me-2"></i> تفاصيل المفتش: {{ inspector.get_full_name }}</h4>
+                </div>
+                
+                <div class="card-body p-4">
+                    <ul class="list-group list-group-flush mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>الاسم الكامل:</strong>
+                            <span>{{ inspector.get_full_name }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>اسم المستخدم:</strong>
+                            <span>{{ inspector.username }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>البريد الإلكتروني:</strong>
+                            <span>{{ inspector.email }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>رقم الهوية:</strong>
+                            <span>{{ inspector.user_id }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>رقم الجوال:</strong>
+                            <span>{{ inspector.phone_number }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>العنوان:</strong>
+                            <span>{{ inspector.address }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>حالة الحساب:</strong>
+                            {% if inspector.is_active %}
+                                <span class="badge bg-success">نشط</span>
+                            {% else %}
+                                <span class="badge bg-danger">غير نشط</span>
+                            {% endif %}
+                        </li>
+                    </ul>
+
+                    {% comment %} يمكن إضافة إحصائيات هنا {% endcomment %}
+                    <h5 class="mt-4 mb-3 text-secondary"><i class="fas fa-chart-bar me-2"></i> إحصائيات الأداء (مثال)</h5>
+                    <p>عدد التقارير المكتملة: **XX**</p>
+                    <p>متوسط وقت إكمال التقرير: **YY** يوم</p>
+                    
+                    <div class="text-center mt-5">
+                        <a href="{% url 'inspectors_list' %}" class="btn btn-secondary me-2">
+                            <i class="fas fa-arrow-right me-1"></i> العودة للقائمة
+                        </a>
+                        <a href="{% url 'manager_edit_inspector' pk=inspector.pk %}" class="btn btn-warning">
+                            <i class="fas fa-user-edit me-1"></i> تعديل بيانات المفتش
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

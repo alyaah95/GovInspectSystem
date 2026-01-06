@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}الصفحة الرئيسية{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if user.is_authenticated %}
+    
+    <div class="text-center mb-5">
+        <div class="welcome-section">
+            <h1 class="display-4 fw-bold text-white mb-3">
+                مرحباً، {{ user.first_name|default:user.username }}!
+            </h1>
+            <p class="lead text-white-50">
+                من هنا يمكنك الوصول إلى جميع وظائف النظام بسهولة وكفاءة
+            </p>
+        </div>
+    </div>
+    
+    {% if user.is_staff or user.is_superuser %}
+    <h2 class="text-primary mb-4 text-center"><i class="fas fa-tachometer-alt me-2"></i> لوحة تحكم المدير</h2>
+
+    <div class="row justify-content-center g-4">
+        
+        <div class="col-lg-4 col-md-6">
+            <div class="card service-card h-100">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <i class="fas fa-building fa-2x mb-2"></i>
+                    <h4 class="card-title mb-0">إدارة الشركات</h4>
+                </div>
+                <div class="card-body text-center py-4">
+                    <p class="card-text">عرض وإضافة وتعديل الشركات التي يتم تفتيشها.</p>
+                </div>
+                <div class="card-footer bg-transparent text-center py-3">
+                    <a href="{% url 'companies_list' %}" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-arrow-left me-2"></i>انتقل إلى الشركات
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+            <div class="card service-card h-100">
+                <div class="card-header bg-success text-white text-center py-3">
+                    <i class="fas fa-file-signature fa-2x mb-2"></i>
+                    <h4 class="card-title mb-0">تقارير المراجعة والأرشيف</h4>
+                </div>
+                <div class="card-body text-center py-4">
+                    <p class="card-text">مراجعة التقارير بانتظار الاعتماد والوصول إلى الأرشيف المكتمل.</p>
+                </div>
+                <div class="card-footer bg-transparent text-center py-3">
+                    <a href="{% url 'manager_review_list' %}" class="btn btn-success btn-lg w-100">
+                        <i class="fas fa-check-double me-2"></i> بانتظار المراجعة
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+            <div class="card service-card h-100">
+                <div class="card-header bg-info text-white text-center py-3">
+                    <i class="fas fa-users-cog fa-2x mb-2"></i>
+                    <h4 class="card-title mb-0">إدارة المفتشين</h4>
+                </div>
+                <div class="card-body text-center py-4">
+                    <p class="card-text">إدارة حسابات المفتشين التابعين لك وإضافة مفتشين جدد.</p>
+                </div>
+                <div class="card-footer bg-transparent text-center py-3">
+                    <a href="{% url 'inspectors_list' %}" class="btn btn-info btn-lg text-white w-100">
+                        <i class="fas fa-user-plus me-2"></i> قائمة المفتشين
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="stats-section text-center p-4 rounded-3 shadow-sm" style="background: rgba(52, 152, 219, 0.1);">
+                <h3 class="text-primary mb-4"><i class="fas fa-chart-bar me-2"></i>نظرة سريعة على النظام</h3>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="stat-item">
+                            <i class="fas fa-building fa-2x text-primary mb-2"></i>
+                            <h4 class="text-dark">50+</h4>
+                            <p class="text-muted">شركة مسجلة</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-item">
+                            <i class="fas fa-file-alt fa-2x text-success mb-2"></i>
+                            <h4 class="text-dark">120+</h4>
+                            <p class="text-muted">تقرير مكتمل</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-item">
+                            <i class="fas fa-users fa-2x text-info mb-2"></i>
+                            <h4 class="text-dark">15+</h4>
+                            <p class="text-muted">مستخدم نشط</p>
+                        </div>
+                    </div>
+                </div>
+                </div>
+        </div>
+    </div>
+
+
+    {% else %}
+    <h2 class="text-success mb-4 text-center"><i class="fas fa-tasks me-2"></i> لوحة مهام المفتش</h2>
+    
+    <div class="row justify-content-center g-4">
+        
+        <div class="col-lg-6 col-md-6">
+            <div class="card service-card h-100 shadow-lg border-success">
+                <div class="card-header bg-success text-white text-center py-3">
+                    <i class="fas fa-map-marker-alt fa-2x mb-2"></i>
+                    <h4 class="card-title mb-0">تعييناتي الحالية (الشركات)</h4>
+                </div>
+                <div class="card-body text-center py-4">
+                    <p class="card-text">قائمة بجميع الشركات المعينة لك للتفتيش عليها. ابدأ التفتيش من هنا.</p>
+                </div>
+                <div class="card-footer bg-transparent text-center py-3">
+                    <a href="{% url 'companies_list' %}" class="btn btn-success btn-lg w-100">
+                        <i class="fas fa-tasks me-2"></i> عرض التعيينات
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-6">
+            <div class="card service-card h-100 shadow-lg border-primary">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <i class="fas fa-history fa-2x mb-2"></i>
+                    <h4 class="card-title mb-0">تقاريري وأرشيفي</h4>
+                </div>
+                <div class="card-body text-center py-4">
+                    <p class="card-text">راجع تقاريرك المنجزة والمقبولة، أو التقارير المرفوضة التي تحتاج للتعديل.</p>
+                </div>
+                <div class="card-footer bg-transparent text-center py-3">
+                    <a href="{% url 'inspector_completed_reports' %}" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-clipboard-list me-2"></i> عرض تقاريري المنجزة
+                    </a>
+                    <a href="{% url 'inspector_rejected_reports' %}" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-undo-alt me-2"></i> عرض التقارير المرفوضة
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="alert alert-info text-center shadow">
+                <i class="fas fa-info-circle me-2"></i> 
+                للبدء بتقرير تفتيش جديد، يرجى اختيار المنشأة من قائمة **تعييناتي الحالية**.
+            </div>
+        </div>
+    </div>
+    
+    {% endif %}
+    {% else %}
+    <div class="hero-section text-center py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="hero-content">
+                    <i class="fas fa-shield-alt fa-5x text-white mb-4"></i>
+                    <h1 class="display-3 fw-bold text-white mb-4">أهلاً بك في نظام التفتيش الحكومي</h1>
+                    <p class="lead fs-4 text-white-50 mb-4">
+                        نظامك المتكامل والمتطور لإدارة ومتابعة عمليات التفتيش الميداني بكفاءة واحترافية
+                    </p>
+                    <div class="hero-features mb-5">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <i class="fas fa-bolt fa-2x text-warning mb-2"></i>
+                                <h5>سريع وفعال</h5>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="fas fa-lock fa-2x text-success mb-2"></i>
+                                <h5>آمن ومحمي</h5>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                                <h5>تقارير ذكية</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{% url 'login' %}" class="btn btn-warning btn-lg px-5 py-3">
+                        <i class="fas fa-sign-in-alt me-2"></i>تسجيل الدخول للبدأ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .service-card {
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .service-card:hover {
+        border-color: var(--secondary-color);
+    }
+
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+    }
+
+    .welcome-section {
+        /* تم تغيير الألوان هنا لتكون أكثر تناغماً مع التغييرات */
+        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); 
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .welcome-section h1, .welcome-section p {
+        color: white !important;
+    }
+
+    .hero-section {
+        background: linear-gradient(135deg, var(--secondary-color) 0%, #2c3e50 100%);
+        color: white;
+        border-radius: 20px;
+        margin: 2rem 0;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .hero-content {
+        padding: 2rem;
+    }
+
+    .stat-item {
+        padding: 1rem;
+    }
+
+    .service-stats {
+        margin: 1rem 0;
+    }
+
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.5rem 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .display-4 {
+            font-size: 2rem;
+        }
+        
+        .display-3 {
+            font-size: 2.5rem;
+        }
+        
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}

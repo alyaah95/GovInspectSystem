@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div dir="rtl" class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card p-4 text-center">
+                <h2 class="mb-3">عذراً، حدث خطأ.</h2>
+                <p class="text-muted">
+                    يبدو أن هناك خطأً ما في النموذج. الرجاء تحديث الصفحة والمحاولة مرة أخرى.
+                </p>
+                <a href="{% url 'login' %}" class="btn btn-primary mt-3">العودة إلى صفحة تسجيل الدخول</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

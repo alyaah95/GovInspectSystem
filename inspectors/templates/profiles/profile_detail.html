@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+
+{% block content %}
+<div dir="rtl" class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i> ملفي الشخصي
+                    </h3>
+                </div>
+                
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        {% comment %}
+                            يمكن إضافة صورة شخصية هنا إن وجدت في نموذج المستخدم
+                            <img src="{{ user.profile_picture.url|default:'{% static "images/default_avatar.png" %}' }}" alt="صورة الملف الشخصي" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                        {% endcomment %}
+                        
+                        <h4 class="mt-3 text-primary">{{ user.get_full_name|default:user.username }}</h4>
+                        
+                        {% if user|is_manager %}
+                            <p class="text-muted"><i class="fas fa-crown me-1"></i> **المدير**</p>
+                        {% elif user|is_inspector %}
+                            <p class="text-muted"><i class="fas fa-hard-hat me-1"></i> **مفتش**</p>
+                        {% else %}
+                            <p class="text-muted">مستخدم عادي</p>
+                        {% endif %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5 class="mb-3 text-secondary"><i class="fas fa-info-circle me-2"></i> معلومات الحساب الأساسية</h5>
+                    <ul class="list-group list-group-flush mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>اسم المستخدم:</strong>
+                            <span class="text-dark">{{ user.username }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>الاسم الكامل:</strong>
+                            <span class="text-dark">{{ user.get_full_name }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>البريد الإلكتروني:</strong>
+                            <span class="text-dark">{{ user.email|default:"لم يحدد" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>رقم الجوال:</strong>
+                            <span class="text-dark">{{ user.phone_number|default:"لم يحدد" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>رقم الهوية:</strong>
+                            <span class="text-dark">{{ user.user_id|default:"لم يحدد" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>العنوان:</strong>
+                            <span class="text-dark">{{ user.address|default:"لم يحدد" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>تاريخ الانضمام:</strong>
+                            <span class="text-dark">{{ user.date_joined|date:"Y-m-d" }}</span>
+                        </li>
+                    </ul>
+
+                    {% if user|is_manager %}
+                    <h5 class="mb-3 text-success"><i class="fas fa-chart-line me-2"></i> بيانات المدير</h5>
+                    <p class="ms-3">لديك صلاحيات إدارية كاملة لإدارة النظام والمفتشين.</p>
+                    {% elif user|is_inspector %}
+                    <h5 class="mb-3 text-warning"><i class="fas fa-clipboard-check me-2"></i> بيانات المفتش</h5>
+                    <p class="ms-3">أنت تعمل كمفتش ميداني ولديك صلاحية إنشاء وإرسال التقارير.</p>
+                    {% endif %}
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'edit_my_profile' %}" class="btn btn-warning me-2">
+                            <i class="fas fa-edit me-1"></i> تعديل الملف الشخصي
+                        </a>
+                        <a href="{% url 'password_reset' %}" class="btn btn-secondary">
+                            <i class="fas fa-lock me-1"></i> تغيير كلمة المرور
+                        </a>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
