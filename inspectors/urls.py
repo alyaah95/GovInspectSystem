@@ -66,12 +66,13 @@ urlpatterns = [
     # مسارات إعادة تعيين كلمة المرور
     path('password_reset/', auth_views.PasswordResetView.as_view(
     template_name='inspectors/password_reset_form.html',
-    # هنشيل الـ html_email_template_name ونكتفي بالـ email_template_name
-    # Django تلقائياً هيدور على ملف .html لو ملقاش .txt أو العكس
-    email_template_name='inspectors/password_reset_email.html', 
+    # النسخة النصية (ضرورية جداً لدجانجو)
+    email_template_name='inspectors/password_reset_email.txt', 
+    # نسخة التصميم
+    html_email_template_name='inspectors/password_reset_email.html',
     subject_template_name='inspectors/password_reset_subject.txt'
-), name='password_reset'),
-
+    ), name='password_reset'),
+    
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='inspectors/password_reset_done.html'), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='inspectors/password_reset_confirm.html', form_class=InspectorSetPasswordForm), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='inspectors/password_reset_complete.html'), name='password_reset_complete'),
