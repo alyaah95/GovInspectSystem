@@ -2,13 +2,11 @@
 
 echo "--- BUILD START ---"
 
-# تثبيت المكتبات باستخدام pip مباشرة
-pip install -r requirements.txt
+# استخدام بايثون لتثبيت المكتبات بشكل يضمن وجودها في المسار الصحيح
+python3.9 -m ensurepip
+python3.9 -m pip install -r requirements.txt
 
-# إنشاء المجلد المطلوب يدوياً للتأكد من وجوده حتى لو فشل الأمر التالي
-mkdir -p staticfiles_build/static
-
-# تجميع الملفات الثابتة
+# جمع الملفات الثابتة
 python3.9 manage.py collectstatic --noinput --clear
 
 echo "--- BUILD END ---"
