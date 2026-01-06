@@ -18,7 +18,8 @@ from django.utils.dateparse import parse_date
 from django.utils import timezone
 from django.template.loader import render_to_string
 from django.http import HttpResponse
-from weasyprint import HTML
+from xhtml2pdf import pisa
+import io
 from datetime import date
 from auditlog.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
@@ -643,24 +644,26 @@ def inspection_report_detail_view(request, pk):
 def generate_inspection_pdf_view(request, pk):
     inspection = get_object_or_404(Inspection, pk=pk)
     
-    # نستخدم نفس السياق الموجود في دالة عرض التفاصيل
     context = {
         'inspection': inspection,
         'company': inspection.company,
-        # لا نرسل الصور حاليًا، كما هو مطلوب
     }
 
-    # نرندر قالب الـ PDF إلى HTML
+    # رندر القالب إلى HTML
     html_string = render_to_string('inspectors/inspection_report_pdf.html', context)
     
-    # نحول الـ HTML إلى PDF باستخدام WeasyPrint
-    pdf_file = HTML(string=html_string).write_pdf()
-
-    # نجهز الـ Response لإرسال ملف الـ PDF للمتصفح
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="inspection_report_{inspection.pk}.pdf"'
-    return response
-
+    # إنشاء ملف في الذاكرة (Buffer)
+    result = io.BytesIO()
+    
+    # تحويل الـ HTML إلى PDF
+    pdf = pisa.pisaDocument(io.BytesIO(html_string.encode("UTF-8")), result)
+    
+    if not pdf.err:
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="inspection_report_{inspection.pk}.pdf"'
+        return response
+        
+    return HttpResponse("حدث خطأ أثناء إنشاء ملف الـ PDF", status=400)
 
 @login_required(login_url='login')
 def soft_delete_inspection_view(request, pk):

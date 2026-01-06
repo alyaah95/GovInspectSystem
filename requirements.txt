@@ -10,3 +10,4 @@ django-crispy-forms==2.1
 crispy-bootstrap5==2024.2
 django-auditlog==2.3.0
 Pillow==10.2.0
+xhtml2pdf==0.2.16
