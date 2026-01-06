@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-key')
 
 # يجب أن يكون False في Vercel إلا لو كنتِ تقومين بعمل تصحيح أخطاء
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = True
 
 # السماح لروابط فيرسل
 ALLOWED_HOSTS = ['.vercel.app', '.now.sh', 'localhost', '127.0.0.1']
@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'GovInspectSystem.wsgi.application'
 # إعداد قاعدة البيانات Neon
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
+        default=os.environ.get('DATABASE_URL', f"sqlite:///{os.path.join(BASE_DIR, 'db.sqlite3')}"),
         conn_max_age=600,
         conn_health_checks=True,
     )
@@ -107,7 +107,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # استخدام WhiteNoise لضغط الملفات وخدمتها
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
