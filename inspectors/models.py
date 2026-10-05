@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from auditlog.registry import auditlog
-# خيارات للحقول ذات القوائم المحددة
+# choices for company type, inspector status, compliance, gender, violation, regulations, shift, and inspection status
 COMPANY_TYPE_CHOICES = [
     ('commercial_shop', 'محل تجاري'),
     ('commercial_building', 'عقار تجاري'),
@@ -60,8 +60,8 @@ INSPECTION_STATUS_CHOICES = (
     ('pending_approval', 'بانتظار الموافقة'),
     ('approved', 'موافق عليه'),
     ('rejected', 'مرفوض'),
-    ('archived', 'مؤرشف'), # حالة جديدة للأرشفة
-    ('deleted', 'محذوف'),    # حالة جديدة للحذف الناعم
+    ('archived', 'مؤرشف'), 
+    ('deleted', 'محذوف'),    
 )
 
 class User(AbstractUser):
@@ -73,7 +73,7 @@ class User(AbstractUser):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='supervised_inspectors' # يمكن للمدير الوصول لقائمة المفتشين من خلال هذا الاسم
+        related_name='supervised_inspectors' # the reverse relation name for supervisors to access their inspectors
     )
     date_joined = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ الانضمام', db_index=True)
 
@@ -81,7 +81,7 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
     
-# نموذج للشركات
+# company model to store the basic information about the company, its location, and its status. The manager can assign an inspector to the company, and the inspector can fill in the inspection details later.
 class Company(models.Model):
     company_name = models.CharField(max_length=255, verbose_name='اسم المنشأة', db_index=True)
     company_number = models.CharField(max_length=100, verbose_name='رقم المنشأة')
@@ -103,7 +103,7 @@ class Company(models.Model):
         null=True,
         verbose_name='المدير المسؤول'
     )
-    # المفتش المعين (اختياري، لأن الشركة قد تكون لم تُعيّن بعد)
+    # the inspector assigned to the company, and the status of the assignment (not assigned, assigned, accepted, declined, in progress, completed)
     assigned_to = models.ForeignKey(
         get_user_model(),
         on_delete=models.SET_NULL,
@@ -136,7 +136,7 @@ class Company(models.Model):
     
     
 
-# نموذج لصور الشركة
+# a model to store images related to a company, with a foreign key to the company and an image field for the image file. The description field is optional, and the uploaded_at field stores the date and time when the image was uploaded.
 class CompanyImage(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='اسم المنشأة')
     image = models.ImageField(upload_to='company_images/', verbose_name='الصورة')
@@ -146,7 +146,7 @@ class CompanyImage(models.Model):
     def __str__(self):
         return f"Image for {self.company}"
 
-# نموذج للإشعارات
+# a model to store notifications for users, with a foreign key to the recipient user and an optional foreign key to the sender user. The title and message fields store the notification content, and the related_company field links the notification to a specific company if applicable. The is_read field indicates whether the notification has been read, and the created_at field stores the date and time when the notification was created.
 class Notification(models.Model):
     recipient = models.ForeignKey(
         User,
@@ -181,7 +181,7 @@ class Notification(models.Model):
     def __str__(self):
         return self.title
     
-# نموذج لتقارير التفتيش
+# a model to store inspection reports, with a foreign key to the inspector user and a foreign key to the company being inspected. The inspection_date field stores the date and time of the inspection, and various fields store the inspector's findings and opinions. The status field indicates the current status of the inspection report (draft, pending approval, approved, rejected, archived, deleted), and the updated_at field stores the date and time when the report was last updated.
 class Inspection(models.Model):
     inspector = models.ForeignKey(get_user_model(), on_delete=models.PROTECT, verbose_name='المفتش')
     company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='اسم المنشأة')
@@ -213,7 +213,7 @@ class Inspection(models.Model):
     def __str__(self):
         return f"Inspection on {self.company.company_name} - {self.inspection_date.date()}"
 
-# نموذج لصور التفتيش
+# a model to store images related to an inspection report, with a foreign key to the inspection and an image field for the image file. The description field is optional, and the uploaded_at field stores the date and time when the image was uploaded.
 class InspectionImage(models.Model):
     inspection = models.ForeignKey(Inspection, on_delete=models.CASCADE, verbose_name='تقرير التفتيش')
     image = models.ImageField(upload_to='inspection_images/', verbose_name='الصورة')

@@ -1,231 +1,295 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div dir="rtl" class="container mt-4">
-    <h2>تعديل شركة: {{ company.company_name }}</h2>
-    <form method="POST" novalidate enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-
-        <h3>صور الشركة</h3>
-        {{ formset.management_form }}
-
-        {# الحصول على اسم الـ prefix من أول form موجود #}
-        {% with first_form=formset.forms.0 %}
-            {% if first_form %}
-                {% with form_prefix=first_form.prefix|cut:'-0' %}
-                
-        <div id="image-form-container">
-            {% for form in formset %}
-            <div class="image-upload-container mb-4 single-image-form" id="form-{{ forloop.counter0 }}"
-                style="position: relative;">
-
-                <button type="button" class="btn btn-outline-danger btn-sm remove-form-btn"
-                    style="position: absolute; top: 5px; left: 5px;">
-                    <i class="fas fa-times"></i>
-                </button>
-
-                {{ form.id }}
-
-                <div class="mb-3">
-                    <label class="form-label">صورة الشركة:</label>
-                    <div class="input-group">
-                        <input type="file" name="{{ form.image.html_name }}" id="{{ form.image.id_for_label }}"
-                            class="form-control image-input" accept="image/*">
-
-                        <label class="input-group-text btn btn-primary file-label" for="{{ form.image.id_for_label }}">
-                            {% if form.instance.image %}
-                            <i class="fas fa-check"></i> {{ form.instance.image.name }}
-                            {% else %}
-                            <i class="fas fa-upload"></i> اختر صورة
-                            {% endif %}
-                        </label>
-                    </div>
-                    {% if form.instance.image %}
-                    <img src="{{ form.instance.image.url }}" alt="معاينة الصورة" class="img-preview mt-2"
-                        style="max-width: 200px; display: block;" />
-                    {% else %}
-                    <img src="" alt="معاينة الصورة" class="img-preview mt-2" style="max-width: 200px; display: none;" />
-                    {% endif %}
-                    <small class="text-danger">{{ form.image.errors }}</small>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">وصف الصورة:</label>
-                    {{ form.description }}
-                    <small class="text-danger">{{ form.description.errors }}</small>
-                </div>
-
-                {% if form.instance.pk %}
-                <div class="d-none">
-                    {{ form.DELETE }}
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-5xl mx-auto px-6 py-12 space-y-8">
+        
+        <!-- Page Header -->
+        <div class="space-y-3">
+            <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">تعديل منشأة</h1>
+            <p class="text-gray-500 text-sm pr-6">{{ company.company_name }}</p>
         </div>
 
-        <button type="button" id="add-image-form" class="btn btn-secondary mt-2">
-            <i class="fas fa-plus"></i> إضافة صورة أخرى
-        </button>
+        <form method="POST" novalidate enctype="multipart/form-data" class="space-y-8">
+            {% csrf_token %}
 
-        <button type="submit" class="btn btn-success mt-3">
-            <i class="fas fa-save"></i> حفظ التعديلات
-        </button>
+            <!-- Company Information Card -->
+            <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+                <div class="p-8 space-y-6">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-medium text-gray-900">معلومات المنشأة</h2>
+                    </div>
+                    {{ form.as_p }}
+                </div>
+            </div>
 
-        <a href="{% url 'companies_list' %}" class="btn btn-danger mt-3">
-            <i class="fas fa-times"></i> إلغاء
-        </a>
+            <!-- Company Images Section - Only for Inspectors -->
+            {% if formset %}
+            <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+                <div class="p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-medium text-gray-900">صور المنشأة</h2>
+                    </div>
 
-        {# تمرير اسم الـ prefix للجافاسكريبت #}
-        <script>
-            const FORM_PREFIX = "{{ form_prefix }}";
-        </script>
+                    {{ formset.management_form }}
+                    
+                    <div id="image-form-container" class="space-y-6">
+                        {% for form in formset %}
+                        <div class="single-image-form bg-gray-50/50 rounded-2xl border border-gray-200 p-6 relative transition-all duration-300 hover:border-red-200" id="form-{{ forloop.counter0 }}">
+                            
+                            <button type="button" class="remove-form-btn absolute top-4 left-4 w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all duration-300 flex items-center justify-center">
+                                <svg class="w-4 h-4" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
 
-                {% endwith %}
-            {% endif %}
-        {% endwith %}
-    </form>
-</div>
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">صورة المنشأة</label>
+                                    <div class="flex items-center gap-4">
+                                        <input type="file" name="{{ form.image.html_name }}" id="{{ form.image.id_for_label }}" class="hidden image-input" accept="image/*">
+                                        <label for="{{ form.image.id_for_label }}" class="file-label cursor-pointer inline-flex items-center gap-2 px-6 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 text-sm font-medium">
+                                            {% if form.instance.image %}
+                                                <svg class="w-4 h-4" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                {{ form.instance.image.name|truncatechars:30 }}
+                                            {% else %}
+                                                <svg class="w-4 h-4" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                                                </svg>
+                                                اختر صورة
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                    {% if form.instance.image %}
+                                    <img src="{{ form.instance.image.url }}" alt="معاينة الصورة" class="img-preview mt-4 rounded-xl border border-gray-200 max-w-xs" />
+                                    {% else %}
+                                    <img src="" alt="معاينة الصورة" class="img-preview mt-4 rounded-xl border border-gray-200 max-w-xs hidden" />
+                                    {% endif %}
+                                    {% if form.image.errors %}
+                                    <p class="text-sm text-red-600 mt-2">{{ form.image.errors }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">وصف الصورة</label>
+                                    {{ form.description }}
+                                    {% if form.description.errors %}
+                                    <p class="text-sm text-red-600 mt-2">{{ form.description.errors }}</p>
+                                    {% endif %}
+                                </div>
+
+                                {% if form.instance.pk %}
+                                <div class="flex items-center gap-2 mt-4">
+                                    <input type="checkbox" name="{{ form.DELETE.html_name }}" id="{{ form.DELETE.id_for_label }}" class="w-4 h-4 text-red-600 rounded">
+                                    <label for="{{ form.DELETE.id_for_label }}" class="text-sm text-gray-600">حذف هذه الصورة</label>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="flex items-center gap-4 pt-6">
+                        <button type="button" id="add-image-form" class="inline-flex items-center gap-2 px-6 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 text-sm font-medium">
+                            <svg class="w-4 h-4" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                            </svg>
+                            إضافة صورة أخرى
+                        </button>
+                    </div>
+                </div>
+            </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const container = document.getElementById('image-form-container');
-        const addButton = document.getElementById('add-image-form');
-        const totalForms = document.getElementById(`id_${FORM_PREFIX}-TOTAL_FORMS`);
-        let formCount = parseInt(totalForms.value);
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.getElementById('image-form-container');
+    const addButton = document.getElementById('add-image-form');
+    const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
+    
+    if (!totalFormsInput) return; // Exit if no formset
+    
+    // Extract prefix from the TOTAL_FORMS input name
+    const prefix = totalFormsInput.name.replace('-TOTAL_FORMS', '');
+    let formCount = parseInt(totalFormsInput.value);
 
-        // وظيفة لتحديث أسماء الحقول بعد إضافة/حذف نموذج
-        function updateFormIndices() {
-            const forms = container.querySelectorAll('.single-image-form');
-            forms.forEach((form, index) => {
-                const prefix = `${FORM_PREFIX}-${index}`;
-                form.id = `form-${index}`;
-
-                // تحديث حقول النموذج
-                const inputs = form.querySelectorAll('input, textarea, label');
-                inputs.forEach(input => {
-                    if (input.id) input.id = input.id.replace(new RegExp(`${FORM_PREFIX}-\\d+-`), prefix + '-');
-                    if (input.name) input.name = input.name.replace(new RegExp(`${FORM_PREFIX}-\\d+-`), prefix + '-');
-                    if (input.htmlFor) input.htmlFor = input.htmlFor.replace(new RegExp(`${FORM_PREFIX}-\\d+-`), prefix + '-');
-                });
+    function updateFormIndices() {
+        const forms = container.querySelectorAll('.single-image-form');
+        forms.forEach((form, index) => {
+            form.id = `form-${index}`;
+            const inputs = form.querySelectorAll('input, textarea, label');
+            inputs.forEach(input => {
+                if (input.id) input.id = input.id.replace(new RegExp(`${prefix}-\\d+-`), `${prefix}-${index}-`);
+                if (input.name) input.name = input.name.replace(new RegExp(`${prefix}-\\d+-`), `${prefix}-${index}-`);
+                if (input.htmlFor) input.htmlFor = input.htmlFor.replace(new RegExp(`${prefix}-\\d+-`), `${prefix}-${index}-`);
             });
-            totalForms.value = forms.length;
-        }
+        });
+        totalFormsInput.value = forms.length;
+    }
 
-        // وظيفة التعامل مع حذف نموذج بالكامل
-        function handleRemoveForm(button) {
-            const form = button.closest('.single-image-form');
-            const deleteInput = form.querySelector('input[name$="-DELETE"]');
-
-            if (deleteInput) {
-                // ده نموذج كان موجود بالفعل
-                deleteInput.checked = true; // بنعلم على حقل الحذف
-                form.style.display = 'none'; // وبنخفي النموذج من العرض
-            } else {
-                // ده نموذج جديد مضاف
-                form.remove();
-            }
+    function handleRemoveForm(button) {
+        const form = button.closest('.single-image-form');
+        const deleteInput = form.querySelector('input[name$="-DELETE"]');
+        if (deleteInput) {
+            deleteInput.checked = true;
+            form.style.opacity = '0.5';
+            form.style.pointerEvents = 'none';
+        } else {
+            form.remove();
             updateFormIndices();
         }
+    }
 
-        // وظيفة للتعامل مع تغيير ملف الصورة
-        function handleFileInput(event) {
-            const input = event.target;
-            const file = input.files[0];
-            const form = input.closest('.single-image-form');
-            const label = form.querySelector('.file-label');
-            const previewImg = form.querySelector('.img-preview');
+    function handleFileInput(event) {
+        const input = event.target;
+        const file = input.files[0];
+        const form = input.closest('.single-image-form');
+        const label = form.querySelector('.file-label');
+        const previewImg = form.querySelector('.img-preview');
 
-            if (file) {
-                label.innerHTML = `<i class="fas fa-check"></i> ${file.name}`;
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    previewImg.src = e.target.result;
-                    previewImg.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            } else {
-                // إذا تم إلغاء اختيار الصورة، نرجع الحالة الأصلية
-                label.innerHTML = `<i class="fas fa-upload"></i> اختر صورة`;
-                previewImg.src = '';
-                previewImg.style.display = 'none';
-            }
+        if (file) {
+            label.innerHTML = `<svg class="w-4 h-4" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> ${file.name}`;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                previewImg.src = e.target.result;
+                previewImg.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            label.innerHTML = `<svg class="w-4 h-4" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg> اختر صورة`;
+            previewImg.src = '';
+            previewImg.classList.add('hidden');
         }
+    }
 
-        // إضافة الأحداث لكل النماذج الموجودة بالفعل
-        container.querySelectorAll('.single-image-form').forEach(form => {
-            const removeBtn = form.querySelector('.remove-form-btn');
-            const fileInput = form.querySelector('.image-input');
+    // Attach events to existing forms
+    container.querySelectorAll('.single-image-form').forEach(form => {
+        const removeBtn = form.querySelector('.remove-form-btn');
+        const fileInput = form.querySelector('.image-input');
+        if (removeBtn) removeBtn.addEventListener('click', () => handleRemoveForm(removeBtn));
+        if (fileInput) fileInput.addEventListener('change', handleFileInput);
+    });
 
-            removeBtn.addEventListener('click', () => handleRemoveForm(removeBtn));
-            fileInput.addEventListener('change', handleFileInput);
-        });
-
-        // حدث زر إضافة نموذج جديد
-        addButton.addEventListener('click', function () {
-            const emptyFormTemplate = `
-                <div class="image-upload-container mb-4 single-image-form" style="position: relative;">
-                    <button type="button" class="btn btn-outline-danger btn-sm remove-form-btn" style="position: absolute; top: 5px; left: 5px;">
-                        <i class="fas fa-times"></i>
-                    </button>
-                    <div class="mb-3">
-                        <label class="form-label">صورة الشركة:</label>
-                        <div class="input-group">
-                            <input type="file" name="${FORM_PREFIX}-${formCount}-image" id="id_${FORM_PREFIX}-${formCount}-image" class="form-control image-input" accept="image/*">
-                            <label class="input-group-text btn btn-primary file-label" for="id_${FORM_PREFIX}-${formCount}-image">
-                                <i class="fas fa-upload"></i> اختر صورة
+    // Add new form
+    addButton.addEventListener('click', function () {
+        const emptyFormTemplate = `
+            <div class="single-image-form bg-gray-50/50 rounded-2xl border border-gray-200 p-6 relative transition-all duration-300 hover:border-red-200">
+                <button type="button" class="remove-form-btn absolute top-4 left-4 w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all duration-300 flex items-center justify-center">
+                    <svg class="w-4 h-4" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">صورة المنشأة</label>
+                        <div class="flex items-center gap-4">
+                            <input type="file" name="${prefix}-${formCount}-image" id="id_${prefix}-${formCount}-image" class="hidden image-input" accept="image/*">
+                            <label for="id_${prefix}-${formCount}-image" class="file-label cursor-pointer inline-flex items-center gap-2 px-6 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 text-sm font-medium">
+                                <svg class="w-4 h-4" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+                                اختر صورة
                             </label>
                         </div>
-                        <img src="" alt="معاينة الصورة" class="img-preview mt-2" style="max-width: 200px; display: none;">
+                        <img src="" alt="معاينة الصورة" class="img-preview mt-4 rounded-xl border border-gray-200 max-w-xs hidden">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">وصف الصورة:</label>
-                        <textarea name="${FORM_PREFIX}-${formCount}-description" cols="40" rows="3" class="form-control" id="id_${FORM_PREFIX}-${formCount}-description"></textarea>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">وصف الصورة</label>
+                        <textarea name="${prefix}-${formCount}-description" cols="40" rows="3" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all duration-300 bg-gray-50/50 hover:bg-white" id="id_${prefix}-${formCount}-description"></textarea>
                     </div>
-                    <input type="hidden" name="${FORM_PREFIX}-${formCount}-DELETE" id="id_${FORM_PREFIX}-${formCount}-DELETE">
                 </div>
-            `;
-            const newFormDiv = document.createElement('div');
-            newFormDiv.innerHTML = emptyFormTemplate.trim();
-            const newForm = newFormDiv.firstChild;
+            </div>
+        `;
+        
+        const newFormDiv = document.createElement('div');
+        newFormDiv.innerHTML = emptyFormTemplate.trim();
+        const newForm = newFormDiv.firstChild;
 
-            container.appendChild(newForm);
-            formCount++;
-            totalForms.value = formCount;
+        container.appendChild(newForm);
+        formCount++;
+        totalFormsInput.value = formCount;
 
-            // إضافة الأحداث للنموذج الجديد
-            const removeBtn = newForm.querySelector('.remove-form-btn');
-            const fileInput = newForm.querySelector('.image-input');
-            removeBtn.addEventListener('click', () => handleRemoveForm(removeBtn));
-            fileInput.addEventListener('change', handleFileInput);
+        const removeBtn = newForm.querySelector('.remove-form-btn');
+        const fileInput = newForm.querySelector('.image-input');
+        if (removeBtn) removeBtn.addEventListener('click', () => handleRemoveForm(removeBtn));
+        if (fileInput) fileInput.addEventListener('change', handleFileInput);
 
-            // تحديث المؤشرات بعد إضافة النموذج الجديد
-            updateFormIndices();
-        });
+        updateFormIndices();
     });
+});
 </script>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between gap-4 bg-white rounded-3xl border border-gray-100 p-6 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+                <button type="submit" class="inline-flex items-center gap-2 px-8 py-3.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 font-medium">
+                    حفظ التعديلات
+                </button>
+                <a href="{% url 'companies_list' %}" class="inline-flex items-center gap-2 px-8 py-3.5 border border-gray-200 text-gray-700 rounded-2xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 font-medium">
+                    إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
 
 <style>
-.image-upload-container {
-    border: 1px solid #ddd;
-    padding: 15px;
-    border-radius: 5px;
-    background-color: #f9f9f9;
+/* Django Form Styling */
+p {
+    margin-bottom: 1.5rem;
 }
 
-.file-label {
-    cursor: pointer;
+label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
 }
 
-.img-preview {
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 5px;
+input[type="text"],
+input[type="email"],
+input[type="number"],
+select,
+textarea {
+    width: 100%;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.875rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    background-color: rgba(249, 250, 251, 0.5);
+    transition: all 0.3s ease;
 }
 
-.remove-form-btn {
-    z-index: 10;
+input:hover,
+select:hover,
+textarea:hover {
+    background-color: white;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    background-color: white;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
 }
 </style>
 {% endblock %}

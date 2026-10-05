@@ -1,9 +1,9 @@
-# الحماية القصوى (ملفات الأسرار)
+# Maximum Protection (Secret Files)
 .env
 db.sqlite3
 secrets.json
 
-# ملفات بايثون المؤقتة (لا نحتاجها في الرفع)
+# Temporary Python files (not needed for uploading)
 __pycache__/
 *.py[cod]
 *$py.class
@@ -11,11 +11,11 @@ venv/
 env/
 ENV/
 
-# ملفات الواجهة والنظام
+# Interface and System Files
 .DS_Store
 .vscode/
 .idea/
 
-# الملفات الثابتة والمرفوعة (تُجمع في السيرفر)
+# Static and uploaded files (collected on the server)
 staticfiles/
 media/

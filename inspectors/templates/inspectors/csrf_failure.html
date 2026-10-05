@@ -1,17 +1,37 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div dir="rtl" class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card p-4 text-center">
-                <h2 class="mb-3">عذراً، حدث خطأ.</h2>
-                <p class="text-muted">
-                    يبدو أن هناك خطأً ما في النموذج. الرجاء تحديث الصفحة والمحاولة مرة أخرى.
-                </p>
-                <a href="{% url 'login' %}" class="btn btn-primary mt-3">العودة إلى صفحة تسجيل الدخول</a>
+<div dir="rtl" class="min-h-screen bg-gray-50/30 flex items-center justify-center py-12 px-6">
+    <div class="w-full max-w-md">
+        
+        <!-- Error Card -->
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            
+            <div class="p-12 text-center space-y-6">
+                <!-- Error Icon -->
+                <div class="w-20 h-20 mx-auto rounded-full bg-red-50 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                    </svg>
+                </div>
+
+                <!-- Title -->
+                <div class="space-y-2">
+                    <h2 class="text-2xl font-medium text-gray-900">عذراً، حدث خطأ</h2>
+                    <p class="text-gray-600 leading-relaxed">
+                        يبدو أن هناك خطأً ما في النموذج. الرجاء تحديث الصفحة والمحاولة مرة أخرى
+                    </p>
+                </div>
+
+                <!-- Back to Login Button -->
+                <a href="{% url 'login' %}" 
+                   class="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 font-medium w-full">
+                    العودة إلى صفحة تسجيل الدخول
+                </a>
             </div>
+
         </div>
+
     </div>
 </div>
 {% endblock %}

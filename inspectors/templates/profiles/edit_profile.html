@@ -2,29 +2,124 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-<div dir="rtl" class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-lg border-0">
-                <div class="card-header bg-warning text-dark text-center py-3">
-                    <h4 class="mb-0"><i class="fas fa-edit me-2"></i> {{ page_title }}</h4>
-                </div>
-                <div class="card-body p-4">
-                    <form method="post" novalidate>
-                        {% csrf_token %}
-                        {{ form|crispy }} 
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="submit" class="btn btn-success btn-lg">
-                                <i class="fas fa-save me-1"></i> حفظ التعديلات
-                            </button>
-                            <a href="{% url 'user_profile' %}" class="btn btn-secondary btn-lg">
-                                <i class="fas fa-times me-1"></i> إلغاء
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-2xl mx-auto px-6 py-12 space-y-8">
+        
+        <!-- Page Header -->
+        <div class="space-y-3">
+            <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">{{ page_title }}</h1>
         </div>
+
+        <!-- Edit Profile Card -->
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            
+            <!-- Form Section -->
+            <div class="p-8">
+                <form method="post" novalidate class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Crispy Forms Rendering -->
+                    <div class="space-y-6">
+                        {{ form|crispy }}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-between gap-4 pt-6 border-t border-gray-100">
+                        <button type="submit" 
+                                class="inline-flex items-center gap-2 px-8 py-3.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 font-medium text-lg">
+                            حفظ التعديلات
+                        </button>
+                        <a href="{% url 'user_profile' %}" 
+                           class="inline-flex items-center gap-2 px-8 py-3.5 border border-gray-200 text-gray-700 rounded-2xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 font-medium text-lg">
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+
     </div>
 </div>
+
+<style>
+/* Enhanced Crispy Forms Styling */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.875rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    background-color: rgba(249, 250, 251, 0.5);
+    transition: all 0.3s ease;
+}
+
+.form-control:hover {
+    background-color: white;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    background-color: white;
+}
+
+.form-select {
+    width: 100%;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.875rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    background-color: rgba(249, 250, 251, 0.5);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.form-select:hover {
+    background-color: white;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    background-color: white;
+}
+
+textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.invalid-feedback {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #dc2626;
+}
+
+.is-invalid {
+    border-color: #dc2626;
+}
+
+.form-text {
+    display: block;
+    margin-top: 0.375rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+</style>
 {% endblock %}

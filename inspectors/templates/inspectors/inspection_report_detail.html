@@ -3,231 +3,345 @@
 {% load custom_filters %}
 
 {% block content %}
-<div dir="rtl" class="container mt-4">
-    <h2 class="mb-4 text-primary">
-        <i class="fas fa-file-alt me-2"></i> تفاصيل تقرير التفتيش - #{{ inspection.pk }}
-    </h2>
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-7xl mx-auto px-6 py-12 space-y-8">
+        
+        <!-- Page Header -->
+        <div class="space-y-3">
+            <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">
+                تفاصيل تقرير التفتيش - #{{ inspection.pk }}
+            </h1>
+        </div>
 
-    <div class="card p-3 mb-4 shadow-sm bg-light">
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
-            
-            <div class="d-flex align-items-center">
-                <strong class="me-2 text-dark">الحالة:</strong>
-                {% if inspection.status == 'draft' %}
-                    <span class="badge bg-secondary p-2">مسودة (Draft)</span>
-                {% elif inspection.status == 'pending_approval' %}
-                    <span class="badge bg-warning text-dark p-2">بانتظار المراجعة</span>
-                {% elif inspection.status == 'archived' %}
-                    <span class="badge bg-success p-2">مكتمل ومؤرشف</span>
-                {% elif inspection.status == 'rejected_closed' %}
-                    <span class="badge bg-danger p-2">مرفوض ومغلق (Re-Visit Required)</span>
-                {% elif inspection.status == 'deleted' %}
-                    <span class="badge bg-dark p-2">محذوف ناعمًا</span>
-                {% else %}
-                    <span class="badge bg-info p-2">{{ inspection.status }}</span>
-                {% endif %}
-            </div>
-
-            <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
-                <a href="{% url 'company_details' pk=inspection.company.pk %}" class="btn btn-sm btn-outline-info">
-                    <i class="fas fa-building me-1"></i> تفاصيل الشركة
-                </a>
-
-                <a href="{% url 'generate_inspection_pdf' pk=inspection.pk %}" class="btn btn-sm btn-outline-secondary" target="_blank">
-                    <i class="fas fa-print me-1"></i> طباعة PDF
-                </a>
-
-                {% if user|is_inspector and inspection.status == 'draft' %}
-                    <a href="{% url 'edit_inspection' pk=inspection.pk %}" class="btn btn-sm btn-warning">
-                        <i class="fas fa-edit me-1"></i> تعديل
-                    </a>
-                {% endif %}
-
-                {% comment %}
-                    منطق زر الحذف والاستعادة
-                {% endcomment %}
+        <!-- Status & Actions Bar -->
+        <div class="bg-white rounded-3xl border border-gray-100 p-6 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="flex items-center justify-between flex-wrap gap-4">
                 
-                {% if inspection.status == 'deleted' %}
-                    {% if user|is_manager %}
-                        <a href="{% url 'restore_inspection' pk=inspection.pk %}" class="btn btn-sm btn-success"
-                           onclick="return confirm('هل أنت متأكد من استعادة هذا التقرير؟')">
-                            <i class="fas fa-undo me-1"></i> استعادة
+                <!-- Status Badge -->
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-medium text-gray-700">الحالة:</span>
+                    {% if inspection.status == 'draft' %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-gray-700 text-sm font-medium border border-gray-200">
+                            مسودة (Draft)
+                        </span>
+                    {% elif inspection.status == 'pending_approval' %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-50 text-yellow-700 text-sm font-medium border border-yellow-200">
+                            بانتظار المراجعة
+                        </span>
+                    {% elif inspection.status == 'archived' %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-700 text-sm font-medium border border-green-200">
+                            مكتمل ومؤرشف
+                        </span>
+                    {% elif inspection.status == 'rejected_closed' %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 text-red-700 text-sm font-medium border border-red-200">
+                            مرفوض ومغلق (Re-Visit Required)
+                        </span>
+                    {% elif inspection.status == 'deleted' %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-900 text-white text-sm font-medium">
+                            محذوف ناعمًا
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 text-sm font-medium border border-blue-200">
+                            {{ inspection.status }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-3">
+                    <a href="{% url 'company_details' pk=inspection.company.pk %}" 
+                       class="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 text-sm font-medium">
+                        تفاصيل المنشأة
+                    </a>
+
+                    <a href="{% url 'generate_inspection_pdf' pk=inspection.pk %}" target="_blank"
+                       class="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-red-50/30 hover:border-red-200 transition-all duration-300 text-sm font-medium">
+                        طباعة PDF
+                    </a>
+
+                    {% if user|is_inspector and inspection.status == 'draft' %}
+                        <a href="{% url 'edit_inspection' pk=inspection.pk %}" 
+                           class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 text-sm font-medium">
+                            تعديل
                         </a>
                     {% endif %}
+
+                    {% if inspection.status == 'deleted' %}
+                        {% if user|is_manager %}
+                            <a href="{% url 'restore_inspection' pk=inspection.pk %}" 
+                               onclick="return confirm('هل أنت متأكد من استعادة هذا التقرير؟')"
+                               class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 text-sm font-medium">
+                                استعادة
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        {% if user|is_manager or user|is_inspector and inspection.status == 'draft' %}
+                            <a href="{% url 'soft_delete_inspection' pk=inspection.pk %}" 
+                               onclick="return confirm('هل أنت متأكد من إخفاء هذا التقرير؟')"
+                               class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 text-sm font-medium">
+                                إخفاء
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Rejection Alert -->
+        {% if inspection.status == 'rejected_closed' %}
+        <div class="bg-white rounded-3xl border-2 border-red-200 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="p-8 space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-medium text-red-900">تم رفض هذا التقرير وإغلاقه</h3>
+                        <p class="text-sm text-red-600 mt-1">الملاحظات التي تستدعي إعادة الزيارة</p>
+                    </div>
+                </div>
+                <div class="bg-red-50/50 border-r-2 border-red-400 p-4 rounded-xl">
+                    <p class="text-gray-700 leading-relaxed">{{ inspection.rejection_notes|default:"لا توجد ملاحظات محددة. يرجى التواصل مع المدير." }}</p>
+                </div>
+                <p class="text-sm text-gray-600">يجب عليك الآن <strong class="text-red-600">بدء تقرير جديد</strong> وإجراء زيارة تفتيش أخرى.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Submit for Review Button -->
+        {% if user|is_inspector and inspection.status == 'draft' %}
+        <div class="bg-white rounded-3xl border border-gray-100 p-8 text-center transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <form method="POST" action="{% url 'submit_for_review' pk=inspection.pk %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" 
+                        class="inline-flex items-center gap-3 px-10 py-4 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 text-lg font-medium">
+                    إرسال التقرير للمراجعة
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Manager Review Actions -->
+        {% if user|is_manager and inspection.status == 'pending_approval' %}
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-medium text-gray-900">قرار المراجعة</h3>
+                        <p class="text-sm text-gray-600 mt-1">التقرير بانتظار مراجعتك. يرجى اتخاذ قرار القبول أو الرفض النهائي</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-center gap-4 pt-4">
+                    <form method="POST" action="{% url 'approve_inspection' pk=inspection.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center gap-2 px-8 py-3.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 font-medium">
+                            قبول التقرير
+                        </button>
+                    </form>
+                    <a href="{% url 'reject_inspection' pk=inspection.pk %}">
+                        <button type="button" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#rejectModal"
+                                class="inline-flex items-center gap-2 px-8 py-3.5 border border-gray-200 text-gray-700 rounded-2xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 font-medium">
+                            رفض التقرير
+                        </button>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+
+        <!-- Company Information Card -->
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="p-8 space-y-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-900">معلومات المنشأة</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-4 border-l border-gray-100 pl-8">
+                        <div class="space-y-1">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">اسم المنشأة</p>
+                            <p class="text-sm font-medium text-gray-900">{{ company.company_name }}</p>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">رقم المنشأة</p>
+                            <p class="text-sm font-medium text-gray-900">{{ company.company_number }}</p>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">المنطقة/الشارع</p>
+                            <p class="text-sm font-medium text-gray-900">{{ company.region }} - {{ company.street_name }}</p>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">عداد الكهرباء</p>
+                            <p class="text-sm font-medium text-gray-900">{{ company.electricity_meter_number }}</p>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">العمال الفعلي</p>
+                            <p class="text-sm font-medium text-gray-900">{{ company.actual_workers_count }}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="space-y-1">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">نوع النشاط</p>
+                            <p class="text-sm font-medium text-gray-900">{{ company.activity_type }}</p>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">نوع المنشأة</p>
+                            <p class="text-sm font-medium text-gray-900">{{ company.get_establishment_type_display }}</p>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">وصف الحجم</p>
+                            <p class="text-sm font-medium text-gray-900">{{ company.size_description }}</p>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">المندوب الرئيسي</p>
+                            <p class="text-sm font-medium text-gray-900">{{ company.mandoub_name_1 }} ({{ company.mandoub_phone_1 }})</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inspection Data Card -->
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="p-8 space-y-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-900">بيانات التفتيش</h3>
+                </div>
+
+                <div class="bg-gray-50/50 rounded-2xl p-6 space-y-3">
+                    <div class="flex items-center gap-3 text-gray-900">
+                        <span class="text-sm font-medium">تاريخ التفتيش:</span>
+                        <span class="text-lg font-light">{{ inspection.inspection_date|date:"Y-m-d" }} في {{ inspection.inspection_date|date:"H:i" }}</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-gray-900">
+                        <span class="text-sm font-medium">اسم المفتش:</span>
+                        <span class="text-lg font-light">{{ inspection.inspector.get_full_name|default:inspection.inspector.username }}</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <div class="flex justify-between py-3 border-b border-gray-100">
+                            <span class="text-sm text-gray-600">تقدير حجم العمالة</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.workers_size_estimation }}</span>
+                        </div>
+                        <div class="flex justify-between py-3 border-b border-gray-100">
+                            <span class="text-sm text-gray-600">مطابقة الرخصة للموقع</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.get_license_compliance_display }}</span>
+                        </div>
+                        <div class="flex justify-between py-3 border-b border-gray-100">
+                            <span class="text-sm text-gray-600">العنصر النسائي</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.get_female_workers_element_display }}</span>
+                        </div>
+                        <div class="flex justify-between py-3 border-b border-gray-100">
+                            <span class="text-sm text-gray-600">تشغيل عمال دون ترخيص</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.get_unlicensed_workers_display }}</span>
+                        </div>
+                        <div class="flex justify-between py-3 border-b border-gray-100">
+                            <span class="text-sm text-gray-600">لائحة الجزاءات</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.get_penalties_regulation_display }}</span>
+                        </div>
+                        <div class="flex justify-between py-3">
+                            <span class="text-sm text-gray-600">لائحة تنظيم العمل</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.get_work_regulation_display }}</span>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between py-3 border-b border-gray-100">
+                            <span class="text-sm text-gray-600">ملف خاص لكل عامل</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.get_worker_file_maintenance_display }}</span>
+                        </div>
+                        <div class="flex justify-between py-3 border-b border-gray-100">
+                            <span class="text-sm text-gray-600">عمل أكثر من الساعات المحددة</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.get_extended_working_hours_display }}</span>
+                        </div>
+                        <div class="flex justify-between py-3 border-b border-gray-100">
+                            <span class="text-sm text-gray-600">عمل أكثر من جمعتين متتاليتين</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.get_consecutive_shifts_display }}</span>
+                        </div>
+                        <div class="flex justify-between py-3 border-b border-gray-100">
+                            <span class="text-sm text-gray-600">جدول ساعات العمل والراحة الأسبوعية</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.get_weekly_rest_schedule_display }}</span>
+                        </div>
+                        <div class="flex justify-between py-3 border-b border-gray-100">
+                            <span class="text-sm text-gray-600">عدد ورديات العمل</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.get_number_of_shifts_display }}</span>
+                        </div>
+                        <div class="flex justify-between py-3">
+                            <span class="text-sm text-gray-600">المندوب الثاني</span>
+                            <span class="text-sm font-medium text-gray-900">{{ inspection.mandoub_name_2 }} ({{ inspection.mandoub_phone_2 }})</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
+                    <p class="text-sm font-medium text-gray-700 mb-2">رأي المفتش النهائي</p>
+                    <p class="text-sm text-gray-600 leading-relaxed italic">{{ inspection.inspector_opinion|default:"لا يوجد رأي مدون من المفتش." }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attached Images Card -->
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="p-8 space-y-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-900">الصور المرفقة ({{ images|length }})</h3>
+                </div>
+                {% if images %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {% for image in images %}
+                    <div class="group">
+                        <a href="{{ image.image.url }}" target="_blank" class="block">
+                            <div class="rounded-2xl overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 hover:border-gray-300">
+                                <img src="{{ image.image.url }}" 
+                                     class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105" 
+                                     alt="{{ image.description }}">
+                                <div class="p-3 bg-white">
+                                    <p class="text-xs text-gray-600 truncate" title="{{ image.description }}">
+                                        {{ image.description|default:"صورة بدون وصف" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
                 {% else %}
-                    {% comment %}
-                        يظهر للمدير دائماً (لأن له صلاحية الإخفاء في الـ View) 
-                        أو للمفتش إذا كان التقرير **مسودة** (Draft)
-                    {% endcomment %}
-                    
-                    {% if user|is_manager or user|is_inspector and inspection.status == 'draft' %}
-                        <a href="{% url 'soft_delete_inspection' pk=inspection.pk %}" class="btn btn-sm btn-danger"
-                           onclick="return confirm('هل أنت متأكد من إخفاء هذا التقرير؟')">
-                            <i class="fas fa-trash-alt me-1"></i> إخفاء
-                        </a>
-                    {% endif %}
-                    
+                <div class="bg-gray-50 border border-gray-200 rounded-2xl p-12 text-center">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+                    </svg>
+                    <p class="text-gray-600 font-medium">لا توجد صور مرفقة بهذا التقرير</p>
+                </div>
                 {% endif %}
             </div>
         </div>
-    </div>
 
-    {% if inspection.status == 'rejected_closed' %}
-    <div class="alert alert-danger shadow-lg mb-4">
-        <h4 class="alert-heading"><i class="fas fa-exclamation-circle me-2"></i>تم رفض هذا التقرير وإغلاقه</h4>
-        <p class="mb-1 fw-bold">الملاحظات التي تستدعي إعادة الزيارة:</p>
-        <p class="ms-3 fst-italic">{{ inspection.rejection_notes|default:"لا توجد ملاحظات محددة. يرجى التواصل مع المدير." }}</p>
-        <hr>
-        <p class="mb-0 small">يجب عليك الآن **بدء تقرير جديد** وإجراء زيارة تفتيش أخرى.</p>
-    </div>
-    {% endif %}
-
-    {% if user|is_inspector and inspection.status == 'draft' %}
-    <div class="alert alert-warning text-center my-4 p-3 border-warning rounded-3 shadow">
-        <form method="POST" action="{% url 'submit_for_review' pk=inspection.pk %}" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-success btn-lg">
-                <i class="fas fa-paper-plane me-2"></i> إرسال التقرير للمراجعة
-            </button>
-        </form>
-    </div>
-    {% endif %}
-
-    {% if user|is_manager and inspection.status == 'pending_approval' %}
-    <div class="alert alert-info text-center my-4 p-4 border-info shadow-lg rounded-3">
-        <h3 class="mb-3 text-dark"><i class="fas fa-gavel me-2"></i>قرار المراجعة</h3>
-        <p class="lead mb-4 text-secondary">التقرير بانتظار مراجعتك. يرجى اتخاذ قرار القبول أو الرفض النهائي.</p>
-        
-        <form method="POST" action="{% url 'approve_inspection' pk=inspection.pk %}" class="d-inline me-3">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary btn-lg px-5">
-                <i class="fas fa-thumbs-up me-2"></i> قبول التقرير
-            </button>
-        </form>
-        
-        <button type="button" class="btn btn-danger btn-lg px-5" data-bs-toggle="modal" data-bs-target="#rejectModal">
-            <i class="fas fa-thumbs-down me-2"></i> رفض التقرير
-        </button>
-    </div>
-    {% endif %}
-    
-    {% if user|is_manager and inspection.status == 'pending_approval' %}
-        <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title" id="rejectModalLabel"><i class="fas fa-exclamation-circle me-2"></i>تأكيد رفض التقرير</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <form method="POST" action="{% url 'reject_inspection' pk=inspection.pk %}">
-                        {% csrf_token %}
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="id_reason" class="form-label fw-bold">سبب الرفض والملاحظات للمفتش:</label>
-                                <textarea class="form-control" id="id_reason" name="reason" rows="4" required placeholder="يرجى كتابة سبب واضح لضرورة إعادة الزيارة..."></textarea>
-                                <div class="form-text text-muted">سيتم إغلاق هذا التقرير وإلزام المفتش ببدء زيارة جديدة.</div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                            <button type="submit" class="btn btn-danger">تأكيد الرفض والإغلاق</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    {% endif %}
-    
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0"><i class="fas fa-info-circle me-2"></i> معلومات الشركة</h4>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6 border-end">
-                    <p><strong><i class="fas fa-tag me-2"></i>اسم المنشأة:</strong> {{ company.company_name }}</p>
-                    <p><strong><i class="fas fa-hashtag me-2"></i>رقم المنشأة:</strong> {{ company.company_number }}</p>
-                    <p><strong><i class="fas fa-map-marker-alt me-2"></i>المنطقة/الشارع:</strong> {{ company.region }} - {{ company.street_name }}</p>
-                    <p><strong><i class="fas fa-plug me-2"></i>عداد الكهرباء:</strong> {{ company.electricity_meter_number }}</p>
-                    <p><strong><i class="fas fa-users me-2"></i>العمال الفعلي:</strong> {{ company.actual_workers_count }}</p>
-                </div>
-                <div class="col-md-6">
-                    <p><strong><i class="fas fa-briefcase me-2"></i>نوع النشاط:</strong> {{ company.activity_type }}</p>
-                    <p><strong><i class="fas fa-building me-2"></i>نوع المنشأة:</strong> {{ company.get_establishment_type_display }} </p>
-                    <p><strong><i class="fas fa-ruler me-2"></i>وصف الحجم:</strong> {{ company.size_description }}</p>
-                    <p><strong><i class="fas fa-user-tie me-2"></i>المندوب الرئيسي:</strong> {{ company.mandoub_name_1 }} ({{ company.mandoub_phone_1 }})</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-secondary text-white">
-            <h4 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>بيانات التفتيش</h4>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-12 mb-3">
-                    <p class="lead"><strong><i class="fas fa-clock me-2"></i>تاريخ التفتيش:</strong> {{ inspection.inspection_date|date:"Y-m-d" }} في {{ inspection.inspection_date|date:"H:i" }}</p>
-                    <p class="lead"><strong><i class="fas fa-user-secret me-2"></i>اسم المفتش:</strong> {{ inspection.inspector.get_full_name|default:inspection.inspector.username }}</p>
-                    <hr>
-                </div>
-
-                <div class="col-md-6">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><strong>تقدير حجم العمالة:</strong> {{ inspection.workers_size_estimation }}</li>
-                        <li class="list-group-item"><strong>مطابقة الرخصة للموقع:</strong> {{ inspection.get_license_compliance_display }}</li>
-                        <li class="list-group-item"><strong>العنصر النسائي:</strong> {{ inspection.get_female_workers_element_display }}</li>
-                        <li class="list-group-item"><strong>تشغيل عمال دون ترخيص:</strong> {{ inspection.get_unlicensed_workers_display }}</li>
-                        <li class="list-group-item"><strong>لائحة الجزاءات:</strong> {{ inspection.get_penalties_regulation_display }}</li>
-                        <li class="list-group-item"><strong>لائحة تنظيم العمل:</strong> {{ inspection.get_work_regulation_display }}</li>
-                    </ul>
-                </div>
-                <div class="col-md-6">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><strong>ملف خاص لكل عامل:</strong> {{ inspection.get_worker_file_maintenance_display }}</li>
-                        <li class="list-group-item"><strong>عمل أكثر من الساعات المحددة:</strong> {{ inspection.get_extended_working_hours_display }}</li>
-                        <li class="list-group-item"><strong>عمل أكثر من جمعتين متتاليتين:</strong> {{ inspection.get_consecutive_shifts_display }}</li>
-                        <li class="list-group-item"><strong>جدول ساعات العمل والراحة الأسبوعية:</strong> {{ inspection.get_weekly_rest_schedule_display }}</li>
-                        <li class="list-group-item"><strong>عدد ورديات العمل:</strong> {{ inspection.get_number_of_shifts_display }}</li>
-                        <li class="list-group-item"><strong>المندوب الثاني:</strong> {{ inspection.mandoub_name_2 }} ({{ inspection.mandoub_phone_2 }})</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="mt-4 p-3 bg-light rounded">
-                <strong><i class="fas fa-comment me-2"></i>رأي المفتش النهائي:</strong> 
-                <p class="fst-italic mb-0">{{ inspection.inspector_opinion|default:"لا يوجد رأي مدون من المفتش." }}</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-dark text-white">
-            <h4 class="mb-0"><i class="fas fa-images me-2"></i>الصور المرفقة ({{ images|length }})</h4>
-        </div>
-        <div class="card-body">
-            {% if images %}
-            <div class="row g-3">
-                {% for image in images %}
-                <div class="col-lg-3 col-md-4 col-sm-6">
-                    <div class="image-box shadow-sm rounded overflow-hidden position-relative">
-                        <a href="{{ image.image.url }}" target="_blank" class="d-block">
-                            <img src="{{ image.image.url }}" class="img-fluid" alt="{{ image.description }}"
-                                style="object-fit: cover; height: 180px; width: 100%;">
-                        </a>
-                        <p class="text-center bg-white p-2 mb-0 small text-truncate" title="{{ image.description }}">
-                            {{ image.description|default:"صورة بدون وصف" }}
-                        </p>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="alert alert-warning text-center">
-                <i class="fas fa-info-circle me-2"></i> لا توجد صور مرفقة بهذا التقرير.
-            </div>
-            {% endif %}
-        </div>
     </div>
 </div>
 {% endblock %}

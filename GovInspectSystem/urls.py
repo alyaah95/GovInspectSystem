@@ -3,17 +3,17 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from inspectors import views as inspectors_views # استيراد الـ views من التطبيق
+from inspectors import views as inspectors_views 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # مسارات عامة على مستوى المشروع
+    # global paths for login, logout, and home
     path('', inspectors_views.home, name='home'),
     path('accounts/login/', inspectors_views.login_view, name='login'),
     path('logout/', inspectors_views.logout_view, name='logout'),
     
-    # تضمين مسارات تطبيق 'inspectors'
+    # include the app's URLs
     path('', include('inspectors.urls')),
 ]
 

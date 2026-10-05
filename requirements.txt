@@ -11,3 +11,5 @@ crispy-bootstrap5==2024.2
 django-auditlog==3.0.0
 Pillow==10.2.0
 reportlab==4.0.4
+arabic-reshaper
+python-bidi

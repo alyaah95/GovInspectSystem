@@ -1,27 +1,174 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إضافة مفتش جديد</title>
-</head>
-<body>
-    <h1>إضافة مفتش جديد</h1>
-    
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+{% extends 'base.html' %}
 
-    <form method="post" novalidate>
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">إضافة المفتش</button>
-    </form>
-    
-    <p><a href="#">العودة إلى لوحة تحكم المدير</a></p>
-</body>
-</html>
+{% block content %}
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-4xl mx-auto px-6 py-12 space-y-8">
+
+        <!-- Page Header -->
+        <div class="space-y-3">
+            <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">إضافة مفتش جديد</h1>
+            <p class="text-gray-500 text-sm pr-6">تسجيل مفتش ميداني جديد في النظام</p>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="space-y-3">
+            {% for message in messages %}
+            <div class="bg-{% if message.tags == 'success' %}green{% elif message.tags == 'error' %}red{% elif message.tags == 'warning' %}yellow{% else %}blue{% endif %}-50 border border-{% if message.tags == 'success' %}green{% elif message.tags == 'error' %}red{% elif message.tags == 'warning' %}yellow{% else %}blue{% endif %}-200 rounded-2xl p-4 flex items-start justify-between">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-{% if message.tags == 'success' %}green{% elif message.tags == 'error' %}red{% elif message.tags == 'warning' %}yellow{% else %}blue{% endif %}-100 flex items-center justify-center flex-shrink-0">
+                        {% if message.tags == 'success' %}
+                            <svg class="w-5 h-5 text-green-600" stroke-width="1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        {% elif message.tags == 'error' %}
+                            <svg class="w-5 h-5 text-red-600" stroke-width="1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        {% elif message.tags == 'warning' %}
+                            <svg class="w-5 h-5 text-yellow-600" stroke-width="1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                            </svg>
+                        {% else %}
+                            <svg class="w-5 h-5 text-blue-600" stroke-width="1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>
+                            </svg>
+                        {% endif %}
+                    </div>
+                    <span class="text-sm text-gray-900">{{ message }}</span>
+                </div>
+                <button onclick="this.parentElement.style.display='none';" class="text-gray-400 hover:text-red-600 transition-colors">
+                    <svg class="w-5 h-5" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <!-- Form Header -->
+            <div class="p-8 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-medium text-gray-900">نموذج التسجيل</h3>
+                        <p class="text-gray-500 text-sm">الرجاء ملء جميع الحقول المطلوبة</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Body -->
+            <div class="p-8">
+                <form method="post" novalidate class="space-y-6">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                        <div class="space-y-2">
+                            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ field.label }}
+                                {% if field.field.required %}
+                                    <span class="text-red-600">*</span>
+                                {% endif %}
+                            </label>
+                            
+                            {% if field.field.widget.input_type == 'checkbox' %}
+                                <div class="flex items-center gap-3">
+                                    <input type="checkbox" 
+                                           name="{{ field.name }}" 
+                                           id="{{ field.id_for_label }}"
+                                           {% if field.value %}checked{% endif %}
+                                           class="w-5 h-5 text-red-600 bg-gray-50 border-gray-300 rounded focus:ring-2 focus:ring-red-500/20 transition-all duration-300">
+                                    <span class="text-gray-600 text-sm">{{ field.help_text }}</span>
+                                </div>
+                            {% elif field.field.widget.input_type == 'select' %}
+                                <select name="{{ field.name }}" 
+                                        id="{{ field.id_for_label }}"
+                                        class="w-full px-4 py-3 bg-gray-50/50 border {% if field.errors %}border-red-300{% else %}border-gray-200{% endif %} rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:bg-white transition-all duration-300 hover:bg-white">
+                                    {{ field }}
+                                </select>
+                            {% elif field.field.widget.input_type == 'textarea' %}
+                                <textarea name="{{ field.name }}" 
+                                          id="{{ field.id_for_label }}"
+                                          rows="4"
+                                          class="w-full px-4 py-3 bg-gray-50/50 border {% if field.errors %}border-red-300{% else %}border-gray-200{% endif %} rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:bg-white transition-all duration-300 resize-none hover:bg-white"
+                                          >{{ field.value|default:'' }}</textarea>
+                            {% else %}
+                                <input type="{{ field.field.widget.input_type }}" 
+                                       name="{{ field.name }}" 
+                                       id="{{ field.id_for_label }}"
+                                       value="{{ field.value|default:'' }}"
+                                       class="w-full px-4 py-3 bg-gray-50/50 border {% if field.errors %}border-red-300 focus:ring-red-500/20{% else %}border-gray-200 focus:ring-red-500/20{% endif %} rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:border-red-500 focus:bg-white transition-all duration-300 hover:bg-white">
+                            {% endif %}
+                            
+                            <!-- Field Errors -->
+                            {% if field.errors %}
+                                <div class="space-y-1">
+                                    {% for error in field.errors %}
+                                        <div class="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                                            <svg class="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                                            </svg>
+                                            <span class="text-sm text-red-700">{{ error }}</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Help Text -->
+                            {% if field.help_text and not field.errors %}
+                                <p class="text-sm text-gray-500">{{ field.help_text }}</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <!-- Form Actions -->
+                    <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-100">
+                        <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 font-medium">
+                            إضافة المفتش
+                        </button>
+                        <a href="{% url 'inspectors_list' %}" class="flex-1 inline-flex items-center justify-center gap-2 px-8 py-3.5 border border-gray-200 text-gray-700 rounded-2xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 font-medium">
+                            العودة للقائمة
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Additional Info Card -->
+        <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+            <div class="flex items-start gap-4">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-blue-600" stroke-width="1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-base font-medium text-blue-900 mb-2">ملاحظات هامة</h4>
+                    <ul class="space-y-2 text-sm text-blue-800">
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-600 mt-1">•</span>
+                            <span>جميع الحقول المميزة بعلامة النجمة (*) إلزامية</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-600 mt-1">•</span>
+                            <span>تأكد من صحة البريد الإلكتروني ورقم الهوية قبل الحفظ</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-600 mt-1">•</span>
+                            <span>سيتم إرسال تفاصيل تسجيل الدخول إلى البريد الإلكتروني المسجل</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

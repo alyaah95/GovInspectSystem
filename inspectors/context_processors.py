@@ -1,4 +1,4 @@
-from .models import Notification # تأكدي من استيراد موديل Notification من مكان وجوده الصحيح
+from .models import Notification
 
 def unread_notifications(request):
     """
@@ -6,18 +6,18 @@ def unread_notifications(request):
     ويضيف هذا العدد كمتغير إلى سياق جميع القوالب.
     """
     if request.user.is_authenticated:
-        # 1. جلب عدد الإشعارات غير المقروءة للمستخدم المسجل دخوله
+        # 1. count the unread notifications for the current user
         unread_count = Notification.objects.filter(
             recipient=request.user, 
             is_read=False
         ).count()
         
-        # 2. إرجاع القيمة في السياق (Context)
+        # 2. return the count in the context
         return {
             'unread_notifications_count': unread_count
         }
     
-    # إذا لم يكن المستخدم مسجل الدخول، لا نرجع شيئاً
+    # 3. if the user is not authenticated, return 0
     return {
         'unread_notifications_count': 0
     }

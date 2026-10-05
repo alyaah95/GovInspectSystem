@@ -1,6 +1,6 @@
 import os
 from django.shortcuts import render, redirect, get_object_or_404
-from .forms import InspectorCreationForm, CompanyImageForm, ManagerCompanyForm, InspectorCompanyForm, InspectionForm, InspectionImageFormSet, InspectorAuthenticationForm, DeclineReasonForm, UserProfileEditForm
+from .forms import CompanyImageFormSet, InspectorCreationForm, CompanyImageForm, ManagerCompanyForm, InspectorCompanyForm, InspectionForm, InspectionImageFormSet, InspectorAuthenticationForm, DeclineReasonForm, UserProfileEditForm
 from django.contrib.auth import login, logout
 from django.forms import inlineformset_factory
 from django.contrib.auth.forms import AuthenticationForm
@@ -22,6 +22,9 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+import arabic_reshaper
+from bidi.algorithm import get_display
+
 import io
 from datetime import date
 from auditlog.models import LogEntry
@@ -33,9 +36,46 @@ User = get_user_model()
 
 
 
-def home(request):
-    return render(request, 'inspectors/home.html')
 
+def home(request):
+    user = request.user
+
+    # 0. if the user is not authenticated, show them the counts as 0
+    if not user.is_authenticated:
+        companies_count = Company.objects.filter(status='active').count()
+        pending_inspections_count = 0
+        inspectors_count = 0
+
+    # 1. if the user is a superuser, show them all counts
+    elif user.is_superuser:
+        companies_count = Company.objects.filter(status='active').count()
+        pending_inspections_count = Inspection.objects.filter(status='pending_approval').count()
+        inspectors_count = User.objects.filter(supervisor__isnull=False, is_superuser=False).count()
+
+    # 2. if the user is a manager, show them counts related to their own inspectors and companies
+    elif user.groups.filter(name='Managers').exists():
+        companies_count = Company.objects.filter(manager=user, status='active').count()
+        pending_inspections_count = Inspection.objects.filter(
+            company__manager=user, 
+            status='pending_approval'
+        ).count()
+        inspectors_count = user.supervised_inspectors.count()
+
+    # 3. if the user is an inspector, show them counts related to their own assignments
+    else:
+        companies_count = Company.objects.filter(assigned_to=user, status='active').count()
+        pending_inspections_count = Inspection.objects.filter(
+            inspector=user, 
+            status='pending_approval'
+        ).count()
+        inspectors_count = 0
+
+    context = {
+        'companies_count': companies_count,
+        'pending_inspections_count': pending_inspections_count,
+        'inspectors_count': inspectors_count,
+    }
+    return render(request, 'inspectors/home.html', context)
 
 
 def login_view(request):
@@ -61,19 +101,23 @@ def logout_view(request):
     return redirect('login')
 
 def is_manager(user):
-    return user.is_authenticated and user.groups.filter(name='Managers').exists()
+    if not user.is_authenticated:
+        return False
+    # the superuser is treated as a manager for the purpose of this check
+    return user.is_superuser or user.groups.filter(name='Managers').exists()
 
 def is_inspector(user):
-    return user.is_authenticated and user.groups.filter(name='Inspectors').exists()
+    if not user.is_authenticated:
+        return False
+    return user.groups.filter(name='Inspectors').exists()
 
 def is_system_user(user):
-    # نتحقق أولاً أنه ليس superuser
-    if user.is_superuser:
+    if not user.is_authenticated:
         return False
-    # نتحقق أنه ينتمي لأحد المجموعتين
-    return user.groups.filter(name__in=['Managers', 'Inspectors']).exists()
+    # the superuser or any user in the groups
+    return user.is_superuser or user.groups.filter(name__in=['Managers', 'Inspectors']).exists()
 
-# دالة لإرسال إشعار بالبريد الإلكتروني
+# a function to send an email notification to the assigned inspector when a company is assigned to them
 def send_assignment_notification(company):
     inspector = company.assigned_to
     if inspector and inspector.email:
@@ -86,7 +130,7 @@ def send_assignment_notification(company):
         )
         email.send()
 
-# دالة مساعدة لإنشاء إشعار
+# a function to create a notification in the system for a user
 def create_notification(recipient, sender, title, message, company=None):
     Notification.objects.create(
         recipient=recipient,
@@ -103,17 +147,16 @@ def add_inspector_view(request):
         if form.is_valid():
             user = form.save(request=request, supervisor=request.user)
             messages.success(request, f'تم إضافة المفتش {user.username} بنجاح.')
-            return redirect('add_inspector')
+            return redirect('inspectors_list')
     else:
         form = InspectorCreationForm()
     return render(request, 'inspectors/add_inspector.html', {'form': form})
 
 
-# دالة عرض الملف الشخصي
+# a function to get the count of unread notifications for a user
 @login_required(login_url='login')
 def profile_detail_view(request):
-    # لا تحتاجين لاسترجاع بيانات إضافية طالما كل شيء في نموذج User
-    # لكن يمكنك إضافة معلومات إحصائية إذا كانت متوفرة
+    # there is no need to check if the user is authenticated here because of the @login_required decorator
     
     context = {
         'user': request.user,
@@ -121,21 +164,21 @@ def profile_detail_view(request):
     return render(request, 'profiles/profile_detail.html', context)
 
 
-from django.db.models import Q # لاستخدام OR في البحث
+from django.db.models import Q # this import for using or in the search
 
 @login_required(login_url='login')
 @user_passes_test(is_manager)
 def inspectors_list_view(request):
-    # 1. الاستعلام الأساسي: جلب المفتشين التابعين للمدير
-    inspectors = User.objects.filter(
-        groups__name='Inspectors',
-        supervisor=request.user
-    )
+    # 1. Primary Query: Retrieve inspectors reporting to the manager.
+    if request.user.is_superuser:
+        inspectors = User.objects.filter(groups__name='Inspectors')
+    else:
+        inspectors = User.objects.filter(groups__name='Inspectors', supervisor=request.user)
 
-    # 2. تطبيق البحث (Searching)
-    search_query = request.GET.get('q') # الحصول على قيمة خانة البحث
+    # 2. search functionality: filter inspectors based on the search query across multiple fields
+    search_query = request.GET.get('q')
     if search_query:
-        # البحث في حقول متعددة باستخدام Q (OR logic)
+        # apply the search filter using Q objects for OR conditions
         inspectors = inspectors.filter(
             Q(first_name__icontains=search_query) |
             Q(last_name__icontains=search_query) |
@@ -144,28 +187,28 @@ def inspectors_list_view(request):
             Q(user_id__icontains=search_query) 
         )
 
-    # 3. تطبيق التصفية (Filtering) حسب حالة النشاط (is_active)
-    filter_status = request.GET.get('status') # الحصول على قيمة التصفية
+    # 3. applying status filter (active/inactive) if provided in the GET parameters
+    filter_status = request.GET.get('status') 
     if filter_status:
         if filter_status == 'active':
             inspectors = inspectors.filter(is_active=True)
         elif filter_status == 'inactive':
             inspectors = inspectors.filter(is_active=False)
     
-    # 4. تطبيق الترتيب (Ordering)
+    # 4. applying ordering based on the 'order_by' GET parameter, with a default order if not provided
     
-    # الافتراضي يكون حسب الاسم الأخير ثم الاسم الأول
+    # default order is by last_name ascending
     default_order = 'last_name' 
     order_by = request.GET.get('order_by', default_order)
 
-    # قائمة الحقول الآمنة للترتيب
-    # نستخدم حقول الاسم، اسم المستخدم، تاريخ الانضمام، وحالة النشاط
+    # define a list of allowed fields for ordering to prevent SQL injection or errors
+    # the allowed fields are: last_name, username, date_joined, is_active (both ascending and descending)
     allowed_orders = ['last_name', '-last_name', 'username', '-username', 'date_joined', '-date_joined', '-is_active', 'is_active'] 
     
     if order_by in allowed_orders:
         inspectors = inspectors.order_by(order_by)
     else:
-        # إذا كانت القيمة غير آمنة، نستخدم الترتيب الافتراضي
+        # if the provided order_by is not allowed, fall back to the default order
         inspectors = inspectors.order_by(default_order)
 
     if not inspectors.exists():
@@ -174,8 +217,8 @@ def inspectors_list_view(request):
     context = {
         'inspectors': inspectors,
         'page_title': 'المفتشون التابعون لي',
-        'search_query': search_query, # تمرير قيمة البحث للحفاظ عليها في النموذج
-        'filter_status': filter_status, # تمرير قيمة التصفية للحفاظ عليها
+        'search_query': search_query, # it is useful to keep the search query in the context to repopulate the search box in the template
+        'filter_status': filter_status, # to keep the filter status in the context to repopulate the filter dropdown in the template
         'current_order': order_by,
     }
     return render(request, 'inspectors/inspectors_list.html', context)
@@ -184,15 +227,16 @@ def inspectors_list_view(request):
 @user_passes_test(is_manager)
 def inspector_detail_view(request, pk):
     
-    # 2. جلب بيانات المفتش
+    # 2. Get inspector data
     inspector = get_object_or_404(User, pk=pk)
 
-    # 3. التأكد من أن المستخدم المُستعرض هو مفتش فعلاً (للتأمين)
-    if inspector.supervisor != request.user or inspector.is_superuser or not inspector.groups.filter(name='Inspectors').exists():
-        messages.error(request, "المستخدم المطلوب ليس مفتشاً.")
+    # 3. to make sure that the inspector is supervised by the current manager or the user is a superuser
+    # we check if the current user is a superuser or if the inspector's supervisor is the current user
+    if not request.user.is_superuser and inspector.supervisor != request.user:
+        messages.error(request, "ليس لديك الصلاحية لاستعراض هذا المفتش.")
         return redirect('inspectors_list')
         
-    # يمكن هنا إضافة معلومات إحصائية للمفتش (مثل عدد التقارير)
+    # it is also a good idea to check if the user is actually an inspector, in case the pk is for a user that is not an inspector
     
     context = {
         'inspector': inspector,
@@ -201,26 +245,26 @@ def inspector_detail_view(request, pk):
     return render(request, 'inspectors/inspector_detail.html', context)
 
 
-# دالة تعديل الملف الشخصي
+# the function to edit the profile of the current user (inspector or manager)
 @login_required(login_url='login')
 def edit_profile_view(request):
     if request.method == 'POST':
-        # نستخدم instance=request.user لملء النموذج ببيانات المستخدم الحالي
+        # we use instance=request.user to bind the form to the current user's data
         form = UserProfileEditForm(request.POST, instance=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, 'تم تحديث ملفك الشخصي بنجاح. ✅')
-            return redirect('user_profile') # يفترض أن اسم الـ url هو 'user_profile'
+            messages.success(request, 'تم تحديث ملفك الشخصي بنجاح. ')
+            return redirect('user_profile') # The URL name is assumed to be 'user_profile'.
         else:
-            # رسائل خطأ حقول النموذج ستظهر تلقائياً
-            messages.error(request, 'الرجاء تصحيح الأخطاء في النموذج. ❌')
+            # Form field error messages will appear automatically.
+            messages.error(request, 'الرجاء تصحيح الأخطاء في النموذج. ')
     else:
         form = UserProfileEditForm(instance=request.user)
 
     context = {
         'form': form,
         'page_title': 'تعديل الملف الشخصي',
-        'user': request.user, # لتتمكني من عرض اسم المستخدم/البريد في القالب
+        'user': request.user, # To enable displaying the username/email in the template
     }
     return render(request, 'profiles/edit_profile.html', context)
 
@@ -231,25 +275,25 @@ def manager_edit_inspector_view(request, pk):
     """
     تسمح للمدير بتعديل بيانات مفتش محدد (باستخدام الـ pk).
     """
-    # 1. جلب كائن المفتش
+    # 1. get the inspector object or return 404 if not found
     inspector = get_object_or_404(User, pk=pk)
     
-    # 2. تحقق أمان إضافي: التأكد من أن الكائن هو مفتش (أو ليس المدير نفسه إذا أردتِ)
+    # 2. a security check to ensure that the current user is either a superuser or the supervisor of the inspector
     if inspector.supervisor != request.user or inspector.is_superuser or not inspector.groups.filter(name='Inspectors').exists():
         messages.error(request, 'ليس لديك الصلاحية لتعديل بيانات هذا المستخدم، إما لأنه ليس تابعًا لك أو ليس مفتشًا معتمدًا.')
         return redirect('inspectors_list')
 
     if request.method == 'POST':
-        # 3. ربط النموذج ببيانات الـ POST وكائن المفتش (instance=inspector)
+        # 3. Binding the form to POST data and the inspector object (instance=inspector)
         form = UserProfileEditForm(request.POST, instance=inspector)
         if form.is_valid():
             form.save()
-            messages.success(request, f'تم تعديل بيانات المفتش {inspector.username} بنجاح. ✅')
-            return redirect('inspectors_list') 
+            messages.success(request, f'تم تعديل بيانات المفتش {inspector.username} بنجاح.')
+            return redirect('inspector_detail', pk=inspector.pk) 
         else:
-            messages.error(request, 'الرجاء تصحيح الأخطاء في النموذج. ❌')
+            messages.error(request, 'الرجاء تصحيح الأخطاء في النموذج. ')
     else:
-        # 4. عرض النموذج لأول مرة مع ملئه ببيانات المفتش
+        # 4. Display the form for the first time, pre-filled with the inspector's data.
         form = UserProfileEditForm(instance=inspector)
 
     context = {
@@ -257,46 +301,49 @@ def manager_edit_inspector_view(request, pk):
         'page_title': f'تعديل المفتش: {inspector.username}',
         'user_to_edit': inspector, 
     }
-    # يجب التأكد من وجود القالب 'inspectors/inspector_edit.html'
+    # Ensure that the template 'inspectors/inspector_edit.html' exists.
     return render(request, 'inspectors/inspector_edit.html', context)
 
+
+
 @login_required(login_url='login')
-@user_passes_test(is_system_user, login_url='login') # يستخدم الدالة الموحدة
+@user_passes_test(is_system_user, login_url='login')
 def companies_list(request):
     query = request.GET.get('q', '').strip()
     start_date = request.GET.get('start_date', '').strip()
     end_date = request.GET.get('end_date', '').strip()
     sort_order = request.GET.get('sort_order', '-created_at')
 
-    # تحديد الصلاحيات داخل الدالة لجلب البيانات
+   # Defining permissions within the data-fetching function.
     user = request.user
     
-    # التحقق من نوع المستخدم (باستخدام المجموعات أو السمات التي عرفتيها سابقاً)
-    if user.groups.filter(name='Managers').exists():
+    if user.is_superuser:
+        # The superuser sees all active companies in the system.
         companies = Company.objects.filter(status='active')
+    elif user.groups.filter(name='Managers').exists():
+        companies = Company.objects.filter(manager=user,status='active')
     elif user.groups.filter(name='Inspectors').exists():
-        # المفتش يرى الشركات المعينة له فقط
         companies = Company.objects.filter(assigned_to=user, status='active')
     else:
         companies = Company.objects.none()
 
-    # جلب عدد الإشعارات غير المقروءة
+    # Retrieve the number of unread notifications
     unread_notifications_count = Notification.objects.filter(recipient=user, is_read=False).count()
 
-    # فلترة بالبحث النصي
+    # Filter by text search
     if query:
         companies = companies.filter(
             Q(company_name__icontains=query) | Q(region__icontains=query)
         )
 
-    # فلترة بالتاريخ
+    # Filter by date
     if start_date and end_date:
         start = parse_date(start_date)
         end = parse_date(end_date)
         if start and end:
             companies = companies.filter(created_at__date__range=(start, end))
 
-    # تطبيق الترتيب (يجب التأكد من أن sort_order قيمة آمنة)
+    # Apply sorting (ensure that sort_order is a safe value)
     companies = companies.order_by(sort_order)
 
     context = {
@@ -311,18 +358,28 @@ def companies_list(request):
 
 
 
-# 4. حذف ناعم (للمدير فقط)
+# 4. Soft delete (Admin only)
 @login_required(login_url='login')
 @user_passes_test(is_manager)
 def hide_company_view(request, pk):
     company = get_object_or_404(Company, pk=pk)
     company.status = 'deleted'
     company.save()
+    if company.assigned_to:
+        create_notification(
+            recipient=company.assigned_to,
+            sender=request.user,
+            title='إلغاء مهمة',
+            message=f'تم إلغاء المهمة الخاصة بمنشأة "{company.company_name}" وإخفاؤها من قبل المدير.',
+            company=company
+        )
+
     messages.success(request, f"تم إخفاء منشأة {company.company_name} بنجاح.")
     return redirect('companies_list')
 
 
-# 5. قائمة المنشآت المخفية (للمدير فقط)
+
+# 5. List of Hidden Entities (Admin Only)
 @login_required(login_url='login')
 @user_passes_test(is_manager)
 def hidden_companies_list(request):
@@ -356,31 +413,44 @@ def hidden_companies_list(request):
     return render(request, 'inspectors/hidden_companies_list.html', context)
 
 
-# 6. استعادة المنشأة المخفية (للمدير فقط)
+# 6. Restore Hidden Facility (Admin Only)
 @login_required(login_url='login')
 @user_passes_test(is_manager)
 def show_company_view(request, pk):
     company = get_object_or_404(Company, pk=pk)
     company.status = 'active'
     company.save()
+    create_notification(
+        recipient=company.assigned_to,
+        sender=request.user,
+        title='استعادة منشأة',
+        message=f'تم استعادة المنشأة "{company.company_name}" من قبل المدير.',
+        company=company
+    )
     messages.success(request, f"تم استعادة منشأة {company.company_name} بنجاح.")
     return redirect('hidden_companies_list')
 
 
 
-# 2. إضافة منشأة جديدة (للمدير فقط)
+# 2. Add a new facility (for managers only)
 @login_required(login_url='login')
 @user_passes_test(is_manager)
 def add_company_view(request):
     if request.method == 'POST':
         form = ManagerCompanyForm(request.POST)
-        if form.is_valid():
+        formset = CompanyImageFormSet(request.POST, request.FILES, prefix='images')
+        if form.is_valid() and formset.is_valid():
             company = form.save(commit=False)
             company.manager = request.user
             if company.assigned_to: 
                 company.status_by_inspector = 'assigned' 
-            company.save()
-            # إنشاء إشعار داخل النظام
+            company.save() # Here, the company acquired an ID.
+
+            # 2. Link the formset to the company and save it directly.
+            # This method saves you from creating a manual loop and helps you avoid errors.
+            formset.instance = company 
+            formset.save()
+            # Create an in-system notification
             create_notification(
                 recipient=company.assigned_to,
                 sender=request.user,
@@ -388,17 +458,18 @@ def add_company_view(request):
                 message=f"قام المدير {request.user.username} بتعيين منشأة {company.company_name} لك. يرجى تأكيد الاستلام.",
                 company=company
             )
-            send_assignment_notification(company) # إرسال إشعار
+            send_assignment_notification(company) # Send notification
             messages.success(request, f"تم إضافة منشأة {company.company_name} بنجاح وتم تعيينها للمفتش.")
             return redirect('companies_list')
     else:
         form = ManagerCompanyForm()
+        formset = CompanyImageFormSet(prefix='images')
     
-    context = {'form': form}
+    context = {'form': form, 'formset': formset}
     return render(request, 'inspectors/add_company.html', context)
 
 
-# 3. قبول المهمة
+# 3. Accepting the task
 @login_required(login_url='login')
 @user_passes_test(is_inspector)
 def accept_assignment_view(request, pk):
@@ -406,7 +477,7 @@ def accept_assignment_view(request, pk):
     company.status_by_inspector = 'accepted'
     company.save()
 
-    # إنشاء إشعار للمدير
+    # Create a notification for the manager when the inspector accepts the assignment
     create_notification(
         recipient=company.manager,
         sender=request.user,
@@ -418,7 +489,7 @@ def accept_assignment_view(request, pk):
     messages.success(request, f"تم قبول مهمة {company.company_name} بنجاح.")
     return redirect('companies_list')
 
-# 4. رفض المهمة
+# 4. Declining the task with a reason
 @login_required(login_url='login')
 @user_passes_test(is_inspector)
 def decline_assignment_view(request, pk):
@@ -433,7 +504,7 @@ def decline_assignment_view(request, pk):
             company.status_by_inspector = 'declined' 
             company.save()
             
-            # إنشاء إشعار للمدير مع سبب الرفض
+            # Create a notification for the manager when the inspector declines the assignment
             create_notification(
                 recipient=company.manager,
                 sender=request.user,
@@ -451,40 +522,41 @@ def decline_assignment_view(request, pk):
     return render(request, 'inspectors/decline_reason.html', context)
 
 
-# 5. عرض الإشعارات
+# 5. Notifications view for the user to see their notifications
 @login_required(login_url='login')
-@user_passes_test(is_system_user, login_url='login') # يستخدم الدالة الموحدة
+@user_passes_test(is_system_user, login_url='login') 
 def notifications_view(request):
     notifications = Notification.objects.filter(recipient=request.user).order_by('-created_at')
     
-    # وضع علامة "تمت القراءة" على جميع الإشعارات
+    # Mark all notifications as read when the user views them
     notifications.update(is_read=True)
 
     return render(request, 'inspectors/notifications.html', {'notifications': notifications})
 
 @login_required(login_url='login')
 def company_details_view(request, pk):
-    company = get_object_or_404(Company, id=pk) # ✅ جلب الشركة أولاً
+    company = get_object_or_404(Company, id=pk)
     if is_manager(request.user):
-        pass # المدير لديه حق الوصول دائمًا
+        pass # the manager can view all companies they manage, so no additional checks are needed here
         
     elif is_inspector(request.user):
-        # السماح للمفتش بالوصول إذا كان هو المعين حاليًا
+        # Check if the inspector is assigned to this company
         if company.assigned_to == request.user:
             pass
         else:
-            # ✅ إضافة هذا الشرط للسماح للمفتشين غير المعينين بالوصول
-            # يمكنكِ هنا جلب الشركة بدون فلترة assigned_to ثم التحقق يدويًا
+            # If the inspector is not assigned to this company, we can either redirect them or show an error message.
+            # then we redirect them to the companies list with an error message.
             messages.error(request, "لم تعد هذه المنشأة مُعيّنة لك.")
             return redirect('companies_list') 
             
     else:
         return redirect('home')
-    
+    company_images =  CompanyImage.objects.filter(company=company)
     inspections = Inspection.objects.filter(company=company).exclude(status='deleted').order_by('-inspection_date')
     context = {
         'company': company,
-        'inspections': inspections
+        'inspections': inspections,
+        'company_images': company_images
     }
     return render(request, 'inspectors/company_details.html', context)
 
@@ -493,16 +565,16 @@ def company_details_view(request, pk):
 @login_required(login_url='login')
 @user_passes_test(is_system_user, login_url='login')
 def edit_company_view(request, pk):
-    # جلب الشركة من قاعدة البيانات
+    # Retrieve the company from the database
     company = get_object_or_404(Company, pk=pk)
     
-    # حفظ القيمة الأصلية لـ assigned_to فوراً بعد جلب الشركة
+    # Store the original assigned_to value for comparison later
     original_assigned_to = company.assigned_to
     
-    # 1. تحديد مسار العمل (مدير أم مفتش)
+    # 1. Determine the form and formset based on the user's role and the company's status
     if is_manager(request.user):
         FormClass = ManagerCompanyForm
-        ImageFormSet = None  # المدير لا يعدل الصور
+        ImageFormSet = ImageFormSet = inlineformset_factory(Company, CompanyImage, form=CompanyImageForm, extra=1, can_delete=True)  # المدير لا يعدل الصور
         is_inspector_flow = False
         
     elif is_inspector(request.user) and company.assigned_to == request.user:
@@ -511,7 +583,7 @@ def edit_company_view(request, pk):
             ImageFormSet = inlineformset_factory(Company, CompanyImage, form=CompanyImageForm, extra=1, can_delete=True)
             is_inspector_flow = True
         else:
-            # منع التعديل إذا كانت الحالة ليست 'accepted' أو 'in_progress'
+            # If the inspector is assigned but the status is not accepted or in_progress, they cannot edit the company.
             messages.error(request, "يجب قبول المهمة أولاً قبل تعديل بياناتها الميدانية.")
             return redirect('companies_list')
         
@@ -519,40 +591,40 @@ def edit_company_view(request, pk):
         messages.error(request, "ليس لديك الصلاحية لتعديل هذه المنشأة.")
         return redirect('companies_list')
 
-    # 2. التعامل مع طلب POST
+    # 2. Handle POST request for form submission
     if request.method == 'POST':
         form = FormClass(request.POST, request.FILES, instance=company)
         formset = ImageFormSet(request.POST, request.FILES, instance=company) if ImageFormSet else None
 
-        # التحقق من صحة النموذج والـ formset (إذا كان موجوداً)
+        # Check the validity of the form and formset (if it exists)
         if form.is_valid() and (not formset or formset.is_valid()):
-            # الحصول على القيمة الجديدة من الفورم
+            # Get the new value from the form
             new_assigned_to = form.cleaned_data.get('assigned_to')
             
-            # طباعة القيم للمساعدة في التصحيح
+            # Print the values for debugging purposes
             print(f"Original assigned_to: {original_assigned_to}")
             print(f"New assigned_to: {new_assigned_to}")
             print(f"Comparison: {original_assigned_to != new_assigned_to}")
             
-            # حفظ الفورم
+            # Save the company form
             company = form.save()
             
-            # حفظ الـ formset إذا كان موجوداً
+            # Save the formset if it exists
             if formset:
                 formset.save()
 
-            # تحديث حالة المفتش إذا كان في وضع المفتش
+            # Update the status of the company based on the flow (inspector or manager)
             if is_inspector_flow and company.status_by_inspector == 'accepted':
                 company.status_by_inspector = 'in_progress'
                 company.save()
                 
-            # منطق المدير (إعادة التعيين والإشعار)
+            # Send notifications only if the flow is not inspector (i.e., manager flow)
             if not is_inspector_flow:
-                # المقارنة بين القيمة الأصلية والجديدة
+                # Check if the assigned_to field has changed
                 if original_assigned_to != new_assigned_to:
                     print(f"Sending notifications - Old: {original_assigned_to}, New: {new_assigned_to}")
                     
-                    # إشعار للمفتش القديم (إذا كان هناك مفتش قديم)
+                    # Notice to the outgoing inspector (if there is an outgoing inspector)
                     if original_assigned_to:
                         create_notification(
                             recipient=original_assigned_to,
@@ -562,10 +634,10 @@ def edit_company_view(request, pk):
                             company=company
                         )
                     
-                    # إشعار للمفتش الجديد (إذا كان هناك مفتش جديد)
+                    # Notice to the new inspector (if there is a new inspector)
                     if new_assigned_to:
                         company.status_by_inspector = 'assigned'
-                        company.save()  # حفظ حالة assigned
+                        company.save() 
                         create_notification(
                             recipient=new_assigned_to,
                             sender=request.user,
@@ -575,17 +647,17 @@ def edit_company_view(request, pk):
                         )
                         send_assignment_notification(company)
                     else:
-                        # لا يوجد مفتش معين
+                        # If the new assigned_to is None, it means the task has been unassigned, so we set the status to 'not_assigned'
                         company.status_by_inspector = 'not_assigned'
-                        company.save()  # حفظ حالة not_assigned
+                        company.save()  
 
             messages.success(request, f"تم تحديث بيانات منشأة {company.company_name} بنجاح.")
-            return redirect('companies_list')
+            return redirect('company_details', pk=company.pk)
         else:
-            # إذا كان الفورم غير صالح، عرض الأخطاء
+            # if the form or formset is invalid, display an error message
             messages.error(request, "يوجد أخطاء في البيانات المرسلة. يرجى التصحيح والمحاولة مرة أخرى.")
     
-    # 3. التعامل مع طلب GET
+    # 3. Handle GET request to display the form with existing data
     else:
         form = FormClass(instance=company)
         formset = ImageFormSet(instance=company) if ImageFormSet else None
@@ -609,10 +681,10 @@ def edit_company_view(request, pk):
 def add_inspection_view(request, pk):
     company = get_object_or_404(Company, pk=pk)
     
-    # حماية: التأكد أن المفتش هو المعين لهذه المنشأة وأن حالتها مقبولة
+    # Security check: Only the assigned inspector or a manager can add an inspection report for this company.
     if not is_manager(request.user):
-        if company.assigned_to != request.user or company.status_by_inspector not in ['accepted', 'in_progress']:
-            messages.error(request, "ليس لديك الصلاحية لإضافة تقرير لهذه المنشأة أو يجب قبول المهمة أولاً.")
+        if company.assigned_to != request.user or company.status_by_inspector not in ['accepted', 'in_progress'] or company.status != 'active':
+            messages.error(request, " ليس لديك الصلاحية لإضافة تقرير لهذه المنشأة أو يجب قبول المهمة أولاً أو أن المنشأة غير نشطة.")
             return redirect('companies_list')
 
     if request.method == 'POST':
@@ -633,7 +705,7 @@ def add_inspection_view(request, pk):
                         image.inspection = inspection
                         image.save()
                     
-                    # تحديث حالة المنشأة لتصبح "قيد التنفيذ" تلقائياً
+                    # Update the company's status_by_inspector to 'in_progress' if it was 'accepted'
                     if company.status_by_inspector == 'accepted':
                         company.status_by_inspector = 'in_progress'
                         company.save()
@@ -661,7 +733,7 @@ def add_inspection_view(request, pk):
 def inspection_report_detail_view(request, pk):
     inspection = get_object_or_404(Inspection, pk=pk)
     
-    # حماية: المفتش يرى تقاريره فقط، المدير يرى كل شيء
+    # Security check: Only the assigned inspector or a manager can view this inspection report.
     if not is_manager(request.user) and inspection.inspector != request.user:
         messages.error(request, "ليس لديك صلاحية لعرض هذا التقرير.")
         return redirect('companies_list')
@@ -678,44 +750,92 @@ def inspection_report_detail_view(request, pk):
 
 
 
-@login_required(login_url='login')
-@user_passes_test(is_system_user, login_url='login')
 def generate_inspection_pdf_view(request, pk):
     inspection = get_object_or_404(Inspection, pk=pk)
+    company = inspection.company
     
-    # إنشاء ملف في الذاكرة
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    # 1. Register the Arabic font for proper rendering of Arabic text in the PDF.
+    # Make sure the font file is located in the specified path and is accessible.
+    font_path = os.path.join(settings.BASE_DIR, 'static/fonts/Amiri-Regular.ttf')
+    pdfmetrics.registerFont(TTFont('ArabicFont', font_path))
+
+    def fix_a(text):
+        if not text: return ""
+        reshaped = arabic_reshaper.reshape(str(text))
+        return get_display(reshaped)
+
+    # draw the header rectangle with a royal red color
+    p.setFillColorRGB(0.86, 0.15, 0.15)
+    p.rect(width - 45, height - 80, 5, 50, fill=1, stroke=0)
+
+    # draw the title of the report in Arabic
+    p.setFillColorRGB(0, 0, 0)
+    p.setFont('ArabicFont', 22)
+    p.drawRightString(width - 60, height - 60, fix_a("تقرير تفتيش رسمي"))
     
-    # كتابة نص بسيط (ملاحظة: reportlab الأساسي لا يدعم العربي بسهولة بدون خطوط)
-    # عشان نضمن إن الموقع يفتح، هنكتب بالإنجليزية مؤقتاً
-    p.drawString(100, 800, f"Inspection Report - ID: {inspection.pk}")
-    p.drawString(100, 780, f"Company: {inspection.company.company_name}")
-    p.drawString(100, 760, f"Inspector: {inspection.inspector.username}")
-    p.drawString(100, 740, f"Date: {inspection.inspection_date}")
-    
-    # إنهاء الصفحة
+    p.setFont('ArabicFont', 10)
+    p.drawString(50, height - 60, f"Date: {inspection.inspection_date.strftime('%Y-%m-%d')}")
+
+    # draw the company name and region
+    current_y = height - 120
+
+    def draw_row(label, value, y_pos):
+        p.setFont('ArabicFont', 12)
+        p.setFillColorRGB(0.3, 0.3, 0.3)
+        p.drawRightString(width - 60, y_pos, fix_a(f"{label}:"))
+        p.setFillColorRGB(0, 0, 0) 
+        p.drawRightString(width - 180, y_pos, fix_a(value))
+        p.setStrokeColorRGB(0.9, 0.9, 0.9)
+        p.line(50, y_pos - 5, width - 50, y_pos - 5)
+        return y_pos - 30
+
+    # show company details
+    p.setFont('ArabicFont', 14)
+    p.drawRightString(width - 60, current_y, fix_a("• معلومات المنشأة"))
+    current_y -= 25
+    current_y = draw_row("اسم المنشأة", company.company_name, current_y)
+    current_y = draw_row("رقم المنشأة", company.company_number, current_y)
+    current_y = draw_row("المنطقة", company.region, current_y)
+
+    # show inspection details
+    current_y -= 20
+    p.setFont('ArabicFont', 14)
+    p.drawRightString(width - 60, current_y, fix_a("• تفاصيل التفتيش"))
+    current_y -= 25
+    current_y = draw_row("تقدير العمالة", inspection.workers_size_estimation, current_y)
+    current_y = draw_row("مطابقة الرخصة", inspection.get_license_compliance_display(), current_y)
+    current_y = draw_row("رأي المفتش", inspection.inspector_opinion, current_y)
+
+    # Representative's Details
+    current_y -= 20
+    p.setFont('ArabicFont', 14)
+    p.drawRightString(width - 60, current_y, fix_a("• بيانات المندوب"))
+    current_y -= 25
+    current_y = draw_row("توقيع المندوب", f"{inspection.mandoub_name_1}", current_y)
+
+    # Finish and Save
     p.showPage()
     p.save()
-    
     buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="inspection_{inspection.pk}.pdf"'
-    return response
+    return HttpResponse(buffer, content_type='application/pdf')
 
 @login_required(login_url='login')
 def soft_delete_inspection_view(request, pk):
-    # إذا كان المستخدم مديرًا، يسمح له بالحذف
+    # if the user is a manager, they can delete any report
     if is_manager(request.user):
-        inspection = get_object_or_404(Inspection, pk=pk) # ✅ المدير يحذف أي تقرير
+        inspection = get_object_or_404(Inspection, pk=pk) # the manager can delete any report
         
-    # إذا كان المستخدم مفتشًا، يجب أن يكون هو المالك للتقرير
+    # if the user is an inspector, they can only delete their own reports
     elif is_inspector(request.user):
-        inspection = get_object_or_404(Inspection, pk=pk, inspector=request.user) # ✅ المفتش يحذف تقاريره فقط
+        inspection = get_object_or_404(Inspection, pk=pk, inspector=request.user) 
         if inspection.status == 'draft':
             pass
         else:
-            # منع الحذف إذا كان قيد المراجعة، مؤرشف، أو مرفوض
+            # prevent deletion if the report is not in draft status
             messages.error(request, "لا يمكنك حذف هذا التقرير إلا إذا كان في حالة **المسودة**.")
             return redirect('inspection_report_detail', pk=inspection.pk)
         
@@ -723,12 +843,12 @@ def soft_delete_inspection_view(request, pk):
         messages.error(request, "ليس لديك الصلاحية لحذف هذا التقرير.")
         return redirect('home')
 
-    # تأكدي من أن التقرير ليس بالفعل محذوفًا
+    # make sure the report is not already deleted
     if inspection.status == 'deleted':
         messages.warning(request, "التقرير محذوف بالفعل.")
         return redirect('company_details', pk=inspection.company.pk)
         
-    # تطبيق الحذف الناعم
+    # Soft delete the inspection report by changing its status to 'deleted'
     inspection.status = 'deleted'
     inspection.save()
     messages.success(request, "تم حذف التقرير ناعمًا بنجاح.")
@@ -741,7 +861,7 @@ def soft_delete_inspection_view(request, pk):
 @login_required(login_url='login')
 @user_passes_test(is_system_user, login_url='login')
 def edit_inspection_view(request, pk):
-    # حماية إضافية: التأكد أن المفتش هو صاحب التقرير
+    # additional security check: only the inspector who created the report can edit it, and only if it's in 'draft' or 'rejected' status
     inspection = get_object_or_404(Inspection, pk=pk, inspector=request.user)
 
     if inspection.status != 'draft' and inspection.status != 'rejected':
@@ -771,19 +891,19 @@ def edit_inspection_view(request, pk):
 @login_required(login_url='login')
 @user_passes_test(is_inspector)
 def submit_for_review_view(request, pk):
-    # ✅ التأكد من أنه المفتش المالك و أن الحالة هي 'draft'
+    # make sure the inspection report belongs to the current inspector and is in 'draft' status
     inspection = get_object_or_404(Inspection, pk=pk, inspector=request.user, status='draft')
     
     
     if request.method == 'POST':
         inspection.status = 'pending_approval'
         inspection.save()
-        # ✅ إشعار للمدير (يجب تنفيذ دالة الإشعار هنا)
+        # notify the manager that a new report is ready for review
         create_notification(recipient=inspection.company.manager, sender= request.user, title="تقرير جديد للمراجعة", message= f"باكمال التقرير الخاص بشركة {inspection.company.company_name} {request.user} قام المفنش" , company= inspection.company)
         messages.success(request, "تم إرسال التقرير للمراجعة بنجاح. لا يمكن تعديله الآن.")
         return redirect('inspection_report_detail', pk=inspection.pk)
     
-    return redirect('inspection_report_detail', pk=inspection.pk) # يمكن أن تكون صفحة تأكيد
+    return redirect('inspection_report_detail', pk=inspection.pk) 
 
 @login_required(login_url='login')
 @user_passes_test(is_inspector)
@@ -791,7 +911,7 @@ def inspector_rejected_reports_view(request):
     """
     يعرض للمفتش قائمة بالتقارير التي تم رفضها من المدير وتحتاج إلى تعديل.
     """
-    # جلب التقارير المرفوضة التي تخص هذا المفتش فقط
+    # get all inspections for the current inspector that have been rejected, ordered by inspection date descending
     inspections = Inspection.objects.filter(
         inspector=request.user, 
         status='rejected'
@@ -809,15 +929,15 @@ def inspector_rejected_reports_view(request):
 @user_passes_test(is_manager)
 def manager_review_list_view(request):
     
-    # الاستعلام الأساسي: تقارير بانتظار الموافقة فقط
+    # the main queryset: all inspections that are pending approval, with related inspector and company data to avoid N+1 queries
     inspections = Inspection.objects.filter(
         status='pending_approval'
     ).select_related('inspector', 'company')
     
-    # 1. تطبيق البحث (Searching)
+    # 1. apply search filtering based on the query parameter 'q' from the GET request
     search_query = request.GET.get('q')
     if search_query:
-        # البحث في اسم الشركة (company__company_name) أو اسم المفتش (inspector__username أو الاسم الكامل)
+        # search in company name, inspector's first name, last name, username, and user_id (assuming user_id is a field in the User model)
         inspections = inspections.filter(
             Q(company__company_name__icontains=search_query) |
             Q(inspector__first_name__icontains=search_query) |
@@ -826,47 +946,45 @@ def manager_review_list_view(request):
             Q(inspector__user_id__icontains=search_query) 
         )
 
-    # 2. تطبيق التصفية حسب نطاق التاريخ (Date Range Filtering)
+    # 2. apply date filtering based on 'date_from' and 'date_to' parameters from the GET request
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     
     if date_from:
         try:
-            # فلترة التفتيش الذي تاريخه أكبر من أو يساوي (>=) تاريخ البداية
+            # filter inspections that have an inspection_date greater than or equal to (>=) the start date
             inspections = inspections.filter(inspection_date__gte=date_from)
         except Exception:
-            # يمكنك إضافة رسالة خطأ هنا إذا كان تنسيق التاريخ غير صحيح
+            # add an error message here
             pass
 
     if date_to:
         try:
-            # فلترة التفتيش الذي تاريخه أقل من أو يساوي (<=) تاريخ النهاية
-            # ملاحظة: إذا كنت تستخدم حقل DateTimeField، قد تحتاج لإضافة نهاية اليوم (23:59:59)
-            # ولكن لحقل DateField يكفي استخدام القيمة مباشرة
+            # filter inspections that have an inspection_date less than or equal to (<=) the end date
             inspections = inspections.filter(inspection_date__lte=date_to)
         except Exception:
-            # يمكنك إضافة رسالة خطأ هنا
+            # add an error message here
             pass
             
 
-    # 4. تطبيق الترتيب (Ordering)
-    order_by = request.GET.get('order_by', '-inspection_date') # الافتراضي: الأحدث أولاً
+    # 4. apply ordering based on the 'order_by' parameter from the GET request, defaulting to '-inspection_date' (most recent first)
+    order_by = request.GET.get('order_by', '-inspection_date')
     
-    # التأكد من أن الترتيب صحيح وآمن
+    # make sure the order_by value is one of the allowed values to prevent SQL injection or unexpected behavior
     allowed_orders = ['inspection_date', '-inspection_date'] 
     if order_by in allowed_orders:
         inspections = inspections.order_by(order_by)
     else:
-        # إذا كانت القيمة غير مسموح بها، نستخدم الترتيب الافتراضي
+        # if the order_by value is not allowed, default to '-inspection_date'
         inspections = inspections.order_by('-inspection_date')
     
     context = {
         'inspections': inspections, 
         'list_title': 'تقارير بانتظار الموافقة',
-        'search_query': search_query,      # لحفظ قيمة البحث
-        'date_from': date_from,            # لحفظ قيمة تاريخ البداية
-        'date_to': date_to,                # لحفظ قيمة تاريخ النهاية
-        'current_order': order_by,              # لحفظ قيمة الترتيب
+        'search_query': search_query,      # to preserve the search query in the template
+        'date_from': date_from,            # to preserve the start date in the template
+        'date_to': date_to,                # to preserve the end date in the template
+        'current_order': order_by,              # to preserve the current order in the template
     }
     return render(request, 'managers/reports_list.html', context)
 
@@ -877,15 +995,15 @@ def approve_inspection_view(request, pk):
     inspection = get_object_or_404(Inspection, pk=pk, status='pending_approval')
     
     if request.method == 'POST':
-        # 🛑 منطق الأرشفة
-        inspection.status = 'archived' # نستخدم Archived بدلاً من Approved مباشرة للأرشفة النهائية
+        #  the logic for approving the inspection report and archiving it
+        inspection.status = 'archived'
         inspection.save()
         
-        # ✅ تحديث حالة الشركة (يجب تنفيذه هنا)
+        # update the company's status to 'archived' as well
         inspection.company.status = 'archived'
         inspection.company.save()
         
-        # ✅ إشعار للمفتش
+        # notify the inspector that their report has been approved and archived
         create_notification(recipient=inspection.inspector, sender=request.user, title="تمت الموافقة على التقرير", message=f"قام المدير {request.user} بالموافقة على التقرير الخاص بشركة {inspection.company.company_name}")
         
         messages.success(request, f"تمت الموافقة وأرشفة تقرير المنشأة {inspection.company.company_name}.")
@@ -897,16 +1015,16 @@ def reject_inspection_view(request, pk):
     inspection = get_object_or_404(Inspection, pk=pk, status='pending_approval')
     
     if request.method == 'POST':
-        form = DeclineReasonForm(request.POST) # ✅ استخدام نموذج سبب الرفض
+        form = DeclineReasonForm(request.POST) 
         if form.is_valid():
-            # 🛑 الرفض يعيد التقرير إلى حالة مرفوض، ويمكن للمفتش التعديل عليها إذا كانت سياستك تسمح بذلك
-            # يمكنكِ هنا حفظ سبب الرفض في حقل جديد في نموذج Inspection (مثل rejection_notes)
+            #  Rejection returns the report to a "Rejected" status, and the inspector can modify it if your policy allows.
+            # Here, you can save the reason for rejection in a new field within the Inspection form (such as `rejection_notes`).
             
             inspection.status = 'rejected'
-            inspection.rejection_notes = form.cleaned_data.get('reason', 'لا يوجد ملاحظات.') # ⚠️ افتراض وجود حقل
+            inspection.rejection_notes = form.cleaned_data.get('reason', 'لا يوجد ملاحظات.')
             inspection.save()
             
-            # ✅ إشعار للمفتش
+            # notify the inspector that their report has been rejected, including the reason for rejection
             create_notification(recipient=inspection.inspector, sender=request.user, title="تم رفض التقرير", 
                                 message=f"قام المدير {request.user} برفض التقرير الخاص بشركة {inspection.company.company_name}. الملاحظات: {inspection.rejection_notes}")
             
@@ -916,7 +1034,7 @@ def reject_inspection_view(request, pk):
     else:
         form = DeclineReasonForm()
         
-    # يجب عرض صفحة الرفض لجمع السبب
+    # show the rejection form to the manager to provide a reason for rejection
     context = {'inspection': inspection, 'form': form}
     return render(request, 'managers/reject_inspection.html', context)
 
@@ -924,7 +1042,7 @@ def reject_inspection_view(request, pk):
 @login_required(login_url='login')
 @user_passes_test(is_inspector)
 def inspector_completed_reports_view(request):
-    # ✅ المفتش يرى فقط تقاريره التي تم أرشفتها
+    # the inspector only sees their own completed and archived reports, ordered by inspection date descending
     inspections = Inspection.objects.filter(
         inspector=request.user, 
         status='archived'
@@ -942,7 +1060,7 @@ def manager_reports_archive_view(request):
     end_date_str = request.GET.get('end_date', '')
     sort_order = request.GET.get('sort_order', '-inspection_date')
 
-    inspections = Inspection.objects.filter(status__in=['approved', 'archived', 'rejected']).select_related('company', 'inspector')
+    inspections = Inspection.objects.filter(status__in=['approved', 'archived']).select_related('company', 'inspector')
     if query:
         inspections = inspections.filter(Q(company__company_name__icontains=query) |
                                         Q(inspector__username__icontains=query) | 
@@ -975,55 +1093,55 @@ def manager_reports_archive_view(request):
         'sort_order': sort_order,
 
     }
-    return render(request, 'managers/reports_archive.html', context) # قد تحتاج إلى قالب منفصل للمدير
+    return render(request, 'managers/reports_archive.html', context)
 
 
 @login_required(login_url='login')
 @user_passes_test(is_manager) 
 def manager_deleted_reports_view(request):
     
-    # 1. الاستعلام الأساسي: عرض التقارير المحذوفة ناعمًا فقط
+    # 1. the main queryset: all inspections that are marked as 'deleted', with related company and inspector data to avoid N+1 queries
     deleted_inspections = Inspection.objects.filter(status='deleted').select_related('company', 'inspector')
     
-    # 2. تطبيق البحث (Searching)
+    # 2. apply search filtering based on the query parameter 'q' from the GET request
     search_query = request.GET.get('q')
     if search_query:
-        # البحث في: اسم الشركة، اسم المفتش، رقم هوية المفتش
+        # search in company name, inspector's first name, last name, username, and user_id (assuming user_id is a field in the User model)
         deleted_inspections = deleted_inspections.filter(
             Q(company__company_name__icontains=search_query) |
             Q(inspector__first_name__icontains=search_query) |
             Q(inspector__last_name__icontains=search_query) |
             Q(inspector__username__icontains=search_query) |
-            Q(inspector__user_id__icontains=search_query) # البحث برقم هوية المفتش
+            Q(inspector__user_id__icontains=search_query) 
         )
 
-    # 3. تطبيق التصفية حسب نطاق التاريخ (Date Range Filtering) - تاريخ الحذف (updated_at)
+    # 3. apply date filtering based on 'date_from' and 'date_to' parameters from the GET request
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     
     if date_from:
         try:
-            # فلترة التفتيش الذي تاريخه أكبر من أو يساوي (>=) تاريخ البداية
+            # filter deleted inspections that have an updated_at date greater than or equal to (>=) the start date
             deleted_inspections = deleted_inspections.filter(updated_at__date__gte=date_from)
         except Exception:
             pass
 
     if date_to:
         try:
-            # فلترة التفتيش الذي تاريخه أقل من أو يساوي (<=) تاريخ النهاية
+            # filter deleted inspections that have an updated_at date less than or equal to (<=) the end date
             deleted_inspections = deleted_inspections.filter(updated_at__date__lte=date_to)
         except Exception:
             pass
             
-    # 4. تطبيق الترتيب (Ordering)
-    order_by = request.GET.get('order_by', '-updated_at') # الافتراضي: الأحدث أولاً
+    # 4. apply ordering based on the 'order_by' parameter from the GET request, defaulting to '-updated_at' (most recent first)
+    order_by = request.GET.get('order_by', '-updated_at')
     
-    # التأكد من أن الترتيب صحيح وآمن
+    # to make sure the order_by value is one of the allowed values to prevent SQL injection or unexpected behavior
     allowed_orders = ['updated_at', '-updated_at'] 
     if order_by in allowed_orders:
         deleted_inspections = deleted_inspections.order_by(order_by)
     else:
-        # إذا كانت القيمة غير مسموح بها، نستخدم الترتيب الافتراضي
+        # if the order_by value is not allowed, default to '-updated_at'
         deleted_inspections = deleted_inspections.order_by('-updated_at')
     
     context = {
@@ -1032,7 +1150,7 @@ def manager_deleted_reports_view(request):
         'search_query': search_query,
         'date_from': date_from,
         'date_to': date_to,
-        'current_order': order_by, # لحفظ الترتيب الحالي في القالب
+        'current_order': order_by, # to preserve the current order in the template
     }
     return render(request, 'managers/deleted_reports.html', context)
 
@@ -1040,11 +1158,11 @@ def manager_deleted_reports_view(request):
 @login_required(login_url='login')
 @user_passes_test(is_manager)
 def restore_inspection_view(request, pk):
-    # ✅ استرجاع تقرير محذوف
+    # Retrieve the inspection report that is marked as 'deleted' using its primary key (pk). If it doesn't exist, return a 404 error.
     inspection = get_object_or_404(Inspection, pk=pk, status='deleted')
     
     if request.method == 'POST':
-        # 🛑 إعادة التقرير إلى حالة المسودة للسماح بالتعديل أو المراجعة
+        # Restore the inspection report by changing its status back to 'draft'. This allows the inspector to edit and resubmit it.
         inspection.status = 'draft' 
         inspection.save()
         messages.success(request, "تم استرجاع التقرير بنجاح، حالته الآن مسودة (Draft).")
@@ -1066,12 +1184,12 @@ def profile_view(request):
 @login_required(login_url='login')
 @user_passes_test(is_manager)
 def manager_audit_log_view(request):
-    # 1. تحديد المستخدمين المشرف عليهم المدير الحالي
+    # 1. get the list of supervised inspectors for the current manager
     supervised_users = request.user.supervised_inspectors.all()
     actor_ids = list(supervised_users.values_list('id', flat=True))
     actor_ids.append(request.user.id)
     
-    # 2. الاستعلام الأساسي: سجلات المدير والمفتشين التابعين
+    # 2. the main queryset: all log entries where the actor is either the manager or one of their supervised inspectors, with related actor and content_type data to avoid N+1 queries
     audit_logs = LogEntry.objects.filter(
         actor_id__in=actor_ids
     ).select_related(
@@ -1079,48 +1197,58 @@ def manager_audit_log_view(request):
         'content_type'
     )
     
-    # 3. تطبيق البحث (Searching)
+    # 3. apply search filtering based on the query parameter 'q' from the GET request
     search_query = request.GET.get('q')
     if search_query:
         audit_logs = audit_logs.filter(
-            # البحث في اسم المستخدم الذي قام بالعملية (actor)
+            # search in actor's first name, last name, username, and user_id (assuming user_id is a field in the User model)
             Q(actor__first_name__icontains=search_query) |
             Q(actor__last_name__icontains=search_query) |
             Q(actor__username__icontains=search_query) |
             Q(actor__user_id__icontains=search_query) |
             
-            # البحث في تمثيل السجل المتأثر (مثل اسم المنشأة)
+            # search in the content type's model name (e.g., 'company', 'inspection') and the object representation (object_repr)
             Q(object_repr__icontains=search_query)
         )
 
-    # 4. تطبيق التصفية حسب نوع العملية (Action)
+    # 4. apply filtering based on the 'action' parameter from the GET request, which corresponds to the action type (0=CREATE, 1=UPDATE, 2=DELETE)
     filter_action = request.GET.get('action')
     if filter_action:
-        # تأكد أن القيمة رقمية لأن log.action يحفظ رقم (0=CREATE, 1=UPDATE, 2=DELETE)
+        # to make sure the filter_action value is an integer, we can use a try-except block to catch any ValueError that may occur if the value is not a valid integer
         try:
             action_value = int(filter_action)
             audit_logs = audit_logs.filter(action=action_value)
         except ValueError:
-            pass # تجاهل إذا لم يكن رقماً صحيحاً
+            pass 
 
-    # 5. تطبيق التصفية حسب نوع النموذج (Model)
+    # 5. apply filtering based on the 'model' parameter from the GET request, which corresponds to the model name (e.g., 'company', 'inspection')
     filter_model = request.GET.get('model')
     if filter_model:
-        # ContentType__model يطابق اسم النموذج بالأحرف الصغيرة (مثل 'company' أو 'user')
         audit_logs = audit_logs.filter(content_type__model__iexact=filter_model)
     
-    # الترتيب النهائي
+    # the final ordering of the logs is by timestamp descending (most recent first)
     audit_logs = audit_logs.order_by('-timestamp')
     
-    # 6. تمرير البيانات إلى الـ Template
+    final_logs = []
+    for log in audit_logs:
+        # if the log entry is an UPDATE action and the only change is the 'last_login' field, we skip this log entry and do not add it to the final list
+        if log.action == 1 and log.changes and list(log.changes.keys()) == ['last_login']:
+            continue  
+        
+        # if the log entry is an UPDATE action and the 'last_login' field is present in the changes, we remove it from the changes dictionary to avoid displaying it in the audit log
+        if log.changes and 'last_login' in log.changes:
+            del log.changes['last_login']
+            
+        final_logs.append(log)
+    # 6. pass the final logs and other context variables to the template for rendering
     context = {
-        'logs': audit_logs,
+        'logs': final_logs,
         'page_title': 'سجلات تدقيق الفريق',
         'search_query': search_query,
         'filter_action': filter_action,
         'filter_model': filter_model,
-        # لتوليد قائمة بالنماذج المتاحة في فلتر القالب
-        'available_models': ['Company', 'Inspection', 'User'] # أضيفي جميع النماذج التي تُسجَّل
+        # to display the available models in the filter dropdown, we can pass a list of model names to the template. This list can be hardcoded or dynamically generated based on the content types in the database. For simplicity, we will hardcode it here.
+        'available_models': ['Company', 'Inspection', 'User'] 
     }
     
     return render(request, 'inspectors/manager_audit_log.html', context)

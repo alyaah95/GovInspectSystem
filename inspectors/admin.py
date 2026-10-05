@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from .forms import CustomUserCreationForm
 from auditlog.models import LogEntry
 
-# تسجيل الموديلات الأخرى
+# Register your models here.
 admin.site.register(Company)
 admin.site.register(CompanyImage)
 admin.site.register(Inspection)

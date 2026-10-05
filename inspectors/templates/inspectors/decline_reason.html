@@ -2,18 +2,95 @@
 {% load static %}
 
 {% block content %}
-<div dir="rtl" class="container mt-4">
-    <h2>سبب رفض المهمة</h2>
-    <p>أنت على وشك رفض مهمة **{{ company.company_name }}**. يرجى تقديم سبب واضح للرفض.</p>
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-danger mt-3">
-            <i class="fas fa-times"></i> تأكيد الرفض
-        </button>
-        <a href="{% url 'companies_list' %}" class="btn btn-secondary mt-3">
-            <i class="fas fa-arrow-right"></i> إلغاء
-        </a>
-    </form>
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-3xl mx-auto px-6 py-12 space-y-8">
+        
+        <!-- Page Header -->
+        <div class="space-y-3">
+            <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">سبب رفض المهمة</h1>
+        </div>
+
+        <!-- Rejection Form Card -->
+        <div class="bg-white rounded-3xl border-2 border-red-200 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            
+            <!-- Warning Notice -->
+            <div class="p-8 border-b border-gray-100">
+                <div class="bg-red-50/50 border-r-2 border-red-400 p-4 rounded-xl">
+                    <p class="text-sm text-red-700 leading-relaxed">
+                        أنت على وشك رفض مهمة <strong class="font-semibold">{{ company.company_name }}</strong>. يرجى تقديم سبب واضح للرفض.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Form Section -->
+            <div class="p-8">
+                <form method="POST" class="space-y-6">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-between gap-4 pt-6 border-t border-gray-100">
+                        <button type="submit" 
+                                class="inline-flex items-center gap-2 px-8 py-3.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 font-medium text-lg">
+                            <svg class="w-5 h-5" stroke-width="2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            تأكيد الرفض
+                        </button>
+                        <a href="{% url 'companies_list' %}" 
+                           class="inline-flex items-center gap-2 px-8 py-3.5 border border-gray-200 text-gray-700 rounded-2xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 font-medium text-lg">
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+
+    </div>
 </div>
+
+<style>
+/* Django Form Styling */
+p {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+input[type="text"],
+textarea {
+    width: 100%;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.875rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    background-color: rgba(249, 250, 251, 0.5);
+    transition: all 0.3s ease;
+}
+
+input:hover,
+textarea:hover {
+    background-color: white;
+}
+
+input:focus,
+textarea:focus {
+    outline: none;
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    background-color: white;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+</style>
 {% endblock %}

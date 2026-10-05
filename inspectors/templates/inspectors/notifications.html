@@ -2,27 +2,107 @@
 {% load static %}
 
 {% block content %}
-<div dir="rtl" class="container mt-4">
-    <h2>الإشعارات</h2>
-    {% if notifications %}
-        <div class="list-group">
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+        
+        <!-- Page Header -->
+        <div class="space-y-3">
+            <div class="flex items-center gap-4">
+                <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">الإشعارات</h1>
+                {% if notifications|length > 0 %}
+                <span class="inline-flex items-center justify-center w-10 h-10 bg-red-600 text-white text-sm font-bold rounded-full">
+                    {{ notifications|length }}
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-gray-500 text-sm pr-6">تابع آخر التحديثات والإشعارات المهمة</p>
+        </div>
+
+        {% if notifications %}
+        <!-- Notifications Cards -->
+        <div class="space-y-6">
             {% for notification in notifications %}
-            <a href="{% if notification.related_company %}{% url 'company_details' pk=notification.related_company.pk %}{% else %}#{% endif %}" class="list-group-item list-group-item-action {% if not notification.is_read %}fw-bold bg-light{% endif %}">
-                <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">{{ notification.title }}</h5>
-                    <small>{{ notification.created_at|timesince }}</small>
+            <a 
+                href="{% if notification.related_company %}{% url 'company_details' pk=notification.related_company.pk %}{% else %}#{% endif %}" 
+                class="block bg-white rounded-3xl border transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 overflow-hidden
+                       {% if not notification.is_read %}border-red-200 bg-gradient-to-l from-red-50/20 to-white{% else %}border-gray-100{% endif %}">
+                
+                <div class="flex items-start gap-6 p-8">
+                    
+                    <!-- Icon Section -->
+                    <div class="flex-shrink-0">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 relative
+                                    {% if not notification.is_read %}bg-red-50 text-red-600{% else %}bg-gray-50 text-gray-400{% endif %}">
+                            {% if notification.related_company %}
+                                <svg class="w-7 h-7" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/>
+                                </svg>
+                            {% else %}
+                                <svg class="w-7 h-7" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+                                </svg>
+                            {% endif %}
+                            {% if not notification.is_read %}
+                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full"></span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="flex-grow min-w-0 space-y-3">
+                        
+                        <!-- Title & Time -->
+                        <div class="flex items-start justify-between gap-4">
+                            <h3 class="text-lg font-medium text-gray-900 
+                                       {% if not notification.is_read %}text-red-900{% endif %}">
+                                {{ notification.title }}
+                            </h3>
+                            <span class="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">{{ notification.created_at|timesince }}</span>
+                        </div>
+
+                        <!-- Message -->
+                        <p class="text-gray-600 leading-relaxed text-sm">{{ notification.message }}</p>
+
+                        <!-- Related Company Badge -->
+                        {% if notification.related_company %}
+                        <div class="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100">
+                            <svg class="w-4 h-4" stroke-width="1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"/>
+                            </svg>
+                            <span class="font-medium">{{ notification.related_company.company_name }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Arrow Indicator -->
+                    <div class="flex-shrink-0 flex items-center">
+                        <svg class="w-6 h-6 text-gray-300 transition-all duration-300 group-hover:text-red-600 group-hover:translate-x-1" stroke-width="1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+                        </svg>
+                    </div>
                 </div>
-                <p class="mb-1">{{ notification.message }}</p>
-                {% if notification.related_company %}
-                <small>الشركة: {{ notification.related_company.company_name }}</small>
+
+                <!-- Unread Bottom Accent -->
+                {% if not notification.is_read %}
+                <div class="h-1 bg-gradient-to-r from-red-600 via-red-500 to-red-400"></div>
                 {% endif %}
             </a>
             {% endfor %}
         </div>
-    {% else %}
-    <div class="alert alert-info" role="alert">
-        لا توجد إشعارات جديدة.
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-3xl border border-gray-100 p-20 text-center transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="w-28 h-28 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-gray-50 to-red-50 flex items-center justify-center">
+                <svg class="w-14 h-14 text-gray-300" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.143 17.082a24.248 24.248 0 003.844.148m-3.844-.148a23.856 23.856 0 01-5.455-1.31 8.964 8.964 0 002.3-5.542m3.155 6.852a3 3 0 005.667 1.97m1.965-2.277L21 21m-4.225-4.225a23.81 23.81 0 003.536-1.003A8.967 8.967 0 0118 9.75V9A6 6 0 006.53 6.53m10.245 10.245L6.53 6.53M3 3l3.53 3.53"/>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-light text-gray-900 mb-3">لا توجد إشعارات</h3>
+            <p class="text-gray-500 max-w-md mx-auto leading-relaxed">سيتم عرض الإشعارات الجديدة هنا عند توفرها. تحقق مرة أخرى لاحقاً للحصول على التحديثات</p>
+        </div>
+        {% endif %}
+
     </div>
-    {% endif %}
 </div>
 {% endblock %}

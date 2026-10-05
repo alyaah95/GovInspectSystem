@@ -1,226 +1,169 @@
 {% extends "base.html" %} 
 {% load i18n %}
+{% load audit_filters %}
 
 {% block content %}
-<h2>{{ page_title }}</h2>
+<div dir="rtl" class="min-h-screen bg-gray-50/30 font-sans text-base">
+    <div class="max-w-7xl mx-auto px-6 py-12 space-y-10">
 
-<div class="card mb-4 shadow-sm">
-    <div class="card-body">
-        <form method="GET" class="row g-3 align-items-center">
-            
-            <div class="col-md-5">
-                <label for="searchQuery" class="form-label visually-hidden">بحث</label>
-                <input type="text" 
-                       class="form-control" 
-                       id="searchQuery" 
-                       name="q" 
-                       placeholder="بحث باسم المستخدم أو السجل المتأثر..."
-                       value="{{ search_query|default:'' }}">
-            </div>
+        
+        <div class="space-y-4">
+            <h1 class="text-4xl lg:text-5xl font-light text-gray-900 border-r-4 border-red-600 pr-5 leading-tight">
+                {{ page_title|default:"سجل الرقابة والتدقيق" }}
+            </h1>
+            <p class="text-lg text-gray-500 pr-7">شاشة رقابية لمتابعة وتدقيق كافة الأنشطة، الإضافات، والتعديلات الفورية التي تجري على بيانات المنظومة.</p>
+        </div>
 
-            <div class="col-md-3">
-                <label for="filterAction" class="form-label visually-hidden">تصفية العملية</label>
-                <select class="form-select" id="filterAction" name="action">
-                    <option value="">-- تصفية حسب العملية --</option>
-                    <option value="0" {% if filter_action == '0' %}selected{% endif %}>إنشاء (Create)</option>
-                    <option value="1" {% if filter_action == '1' %}selected{% endif %}>تعديل (Update)</option>
-                    <option value="2" {% if filter_action == '2' %}selected{% endif %}>حذف (Delete)</option>
-                </select>
+        <!-- section of search and filter -->
+        <div class="bg-white rounded-3xl border border-gray-100 p-8 transition-all duration-500 hover:shadow-2xl">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-medium text-gray-900">البحث والتصفية في السجلات</h3>
             </div>
 
-            <div class="col-md-2">
-                <label for="filterModel" class="form-label visually-hidden">تصفية النموذج</label>
-                <select class="form-select" id="filterModel" name="model">
-                    <option value="">-- تصفية حسب النموذج --</option>
-                    {% for model in available_models %}
-                        <option value="{{ model }}" {% if filter_model == model %}selected{% endif %}>
-                            {{ model|capfirst }} 
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                <div class="lg:col-span-2 space-y-2">
+                    <label class="text-sm font-semibold text-gray-600 px-1">بحث سريع</label>
+                    <input type="text" name="q" placeholder="ابحث باسم الموظف أو رقم السجل..." value="{{ search_query|default:'' }}"
+                           class="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-red-500/10 focus:border-red-500 outline-none transition-all text-lg">
+                </div>
 
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-search me-1"></i> بحث
-                </button>
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-gray-600 px-1">تصنيف الإجراء</label>
+                    <select name="action" class="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-red-500/10 outline-none appearance-none text-lg">
+                        <option value="">استعراض كافة العمليات</option>
+                        <option value="0" {% if filter_action == '0' %}selected{% endif %}>إضافة سجل جديد</option>
+                        <option value="1" {% if filter_action == '1' %}selected{% endif %}>تعديل بيانات حالية</option>
+                        <option value="2" {% if filter_action == '2' %}selected{% endif %}>حذف من النظام</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 py-3.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all font-medium text-lg">تطبيق التصفية</button>
+                    <a href="{% url 'manager_audit_logs' %}" class="px-5 py-3.5 border border-gray-200 text-gray-500 rounded-2xl hover:bg-red-50/50 hover:text-red-600 transition-all flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- audit log table -->
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm transition-all hover:shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50/80 border-b border-gray-100">
+                            <th class="px-8 py-5 text-gray-600 font-bold text-sm">المسؤول عن الإجراء</th>
+                            <th class="px-8 py-5 text-gray-600 font-bold text-sm">طبيعة العملية</th>
+                            <th class="px-8 py-5 text-gray-600 font-bold text-sm">القسم أو السجل المتأثر</th>
+                            <th class="px-8 py-5 text-gray-600 font-bold text-sm">التغييرات التفصيلية</th>
+                            <th class="px-8 py-5 text-gray-600 font-bold text-sm">التوقيت والتاريخ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for log in logs %}
+                        <tr class="group hover:bg-red-50/30 transition-all duration-300">
+                            <!-- actor -->
+                            <td class="px-8 py-6">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 bg-white border-2 border-red-100 rounded-2xl flex items-center justify-center text-red-600 font-bold shadow-sm">
+                                        {{ log.actor.username.0 }}
+                                    </div>
+                                    <div>
+                                        <p class="text-lg font-bold text-gray-900">{{ log.actor.username }}</p>
+                                        <p class="text-xs text-gray-400 font-mono">رقم تعريفي: {{ log.actor.id }}</p>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- action -->
+                            <td class="px-8 py-6">
+                                {% if log.action == 0 %}
+                                    <span class="px-4 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm font-bold border border-green-100 inline-flex items-center gap-2">
+                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> إضافة جديد
+                                    </span>
+                                {% elif log.action == 1 %}
+                                    <span class="px-4 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-bold border border-blue-100 inline-flex items-center gap-2">
+                                        <span class="w-2 h-2 bg-blue-500 rounded-full"></span> تعديل بيانات
+                                    </span>
+                                {% else %}
+                                    <span class="px-4 py-1.5 bg-red-50 text-red-700 rounded-lg text-sm font-bold border border-red-100 inline-flex items-center gap-2">
+                                        <span class="w-2 h-2 bg-red-500 rounded-full"></span> حذف سجل
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- affected object -->
+                            <td class="px-8 py-6">
+                                <!-- the reliance on the human-readable model name field, translated by default in Django instead of the English programming term -->
+                                <p class="text-sm font-bold text-red-600 mb-1">{{ log.content_type.name }}</p>
+                                <p class="text-lg text-gray-800 font-medium">{{ log.object_repr }}</p>
+                            </td>
+
+                            <!-- changes -->
+                            <td class="px-8 py-6 min-w-[400px]">
+                                <div class="space-y-4">
+                                    {% for field, change in log.changes.items %}
+                                        {% with field|prettify_log:"field" as translated_field %}
+                                        <div class="flex items-start gap-3 text-gray-800 bg-white/40 p-2 rounded-lg group-hover:bg-red-50/50 transition-colors">
+                                            
+                                            <div class="mt-1">
+                                                {% if log.action == 0 %}
+                                                    <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/></svg>
+                                                {% elif log.action == 1 %}
+                                                    <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+                                                {% else %}
+                                                    <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                {% endif %}
+                                            </div>
+
+                                            <div class="leading-relaxed">
+                                                <span class="font-bold text-gray-900">{{ translated_field }}:</span>
+                                                
+                                                {% if log.action == 0 %}
+                                                    <span>تم تعيين القيمة بـ <mark class="bg-green-100 text-green-800 px-1 rounded font-medium">"{{ change.1|prettify_log:"value" }}"</mark></span>
+                                                {% elif log.action == 1 %}
+                                                    <span>تعدلت من <span class="text-gray-500 line-through decoration-red-400/50">{{ change.0|default:"فارغ"|prettify_log:"value" }}</span> </span>
+                                                    <span class="text-blue-600 font-bold mx-1">إلى</span>
+                                                    <mark class="bg-blue-100 text-blue-800 px-1 rounded font-bold">"{{ change.1|default:"فارغ"|prettify_log:"value" }}"</mark>
+                                                {% elif log.action == 2 %}
+                                                    <span>كانت القيمة المسجلة <mark class="bg-red-50 text-red-700 px-1 rounded">"{{ change.0|prettify_log:"value" }}"</mark> قبل الحذف الفعلي</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endwith %}
+                                    {% empty %}
+                                        <p class="text-gray-400 italic">اكتمل الإجراء دون تعديل على الحقول الفرعية.</p>
+                                    {% endfor %}
+                                </div>
+                            </td>
+
+                            <!-- timestamp -->
+                            <td class="px-8 py-6">
+                                <div class="text-gray-900 font-medium text-lg">{{ log.timestamp|date:"H:i" }}</div>
+                                <div class="text-gray-400 text-sm">{{ log.timestamp|date:"Y/m/d" }}</div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="py-20 text-center">
+                                <div class="flex flex-col items-center gap-4">
+                                    <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
+                                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    </div>
+                                    <p class="text-xl text-gray-400">لا توجد عمليات مسجلة تطابق خيارات البحث</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-             <div class="col-md-12 text-center mt-0">
-                <a href="{% url 'manager_audit_logs' %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-redo me-1"></i> إعادة تعيين الفلاتر
-                </a>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>{% translate "المستخدم" %}</th>
-            <th>{% translate "رقم الهوية" %}</th>
-            <th>{% translate "العملية" %}</th>
-            <th>{% translate "النموذج" %}</th>
-            <th>{% translate "الزمن" %}</th>
-            <th>{% translate "السجل المتأثر" %}</th>
-            <th>{% translate "التغييرات" %}</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for log in logs %}
-        <tr>
-            <td>{{ log.actor.username }}</td>
-
-            <td>{{ log.actor.user_id }}
-            
-            <td><span class="badge bg-{{ log.action|lower }}">{{ log.get_action_display }}</span></td> 
-            
-            <td>{{ log.content_type.model|capfirst }}</td>
-            
-            <td>{{ log.timestamp|date:"Y-m-d H:i" }}</td>
-            
-            <td>{{ log.object_repr }}</td>
-            
-           {% load audit_filters %}
-            <td style="padding: 8px; vertical-align: top;">
-                {% for field, change in log.changes.items %}
-                    {% with field|prettify_log:"field" as translated_field %}
-                    
-                    {# حالة الإنشاء (Create) - عرض القيم الغير فارغة فقط #}
-                    {% if log.action == 0 %}  {# إنشاء - action 0 #}
-                        {% if change.1 %}  {# فقط إذا القيمة الجديدة ليست فارغة #}
-                            <div class="change-item">
-                                <strong>{{ translated_field }}:</strong>
-                                <span class="badge badge-success">[إضافة]</span>
-                                <span class="new-value">{{ change.1|prettify_log:"value" }}</span>
-                            </div>
-                        {% endif %}
-                    
-                    {# حالة التعديل (Update) - عرض كل القيم حتى الفارغة #}
-                    {% elif log.action == 1 %}  {# تعديل - action 1 #}
-                        <div class="change-item">
-                            <strong>{{ translated_field }}:</strong>
-                            <div class="change-comparison">
-                                <span class="old-value">
-                                    {% if change.0 %}
-                                        {{ change.0|prettify_log:"value" }}
-                                    {% else %}
-                                        <span class="empty-value">[فارغ]</span>
-                                    {% endif %}
-                                </span>
-                                <span class="arrow">→</span>
-                                <span class="new-value">
-                                    {% if change.1 %}
-                                        {{ change.1|prettify_log:"value" }}
-                                    {% else %}
-                                        <span class="empty-value">[فارغ]</span>
-                                    {% endif %}
-                                </span>
-                            </div>
-                        </div>
-                    
-                    {# حالة الحذف (Delete) - عرض القيم المحذوفة #}
-                    {% elif log.action == 2 %}  {# حذف - action 2 #}
-                        {% if change.0 %}  {# فقط إذا القيمة القديمة ليست فارغة #}
-                            <div class="change-item">
-                                <strong>{{ translated_field }}:</strong>
-                                <span class="badge badge-danger">[حذف]</span>
-                                <span class="old-value">{{ change.0|prettify_log:"value" }}</span>
-                            </div>
-                        {% endif %}
-                    
-                    {% endif %}
-                    {% endwith %}
-                {% empty %}
-                    <span class="no-changes">لا توجد تغييرات</span>
-                {% endfor %}
-            </td>
-
-            <style>
-            .change-item {
-                margin-bottom: 8px;
-                padding: 8px;
-                border-bottom: 1px dashed #e0e0e0;
-                background: #f8f9fa;
-                border-radius: 4px;
-            }
-
-            .change-comparison {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                margin-top: 6px;
-                flex-wrap: wrap;
-            }
-
-            .old-value {
-                color: #dc3545;
-                text-decoration: line-through;
-                padding: 4px 8px;
-                background: #fff5f5;
-                border-radius: 4px;
-                border: 1px solid #f5c6cb;
-            }
-
-            .new-value {
-                color: #28a745;
-                font-weight: bold;
-                padding: 4px 8px;
-                background: #f0fff4;
-                border-radius: 4px;
-                border: 1px solid #c3e6cb;
-            }
-
-            .empty-value {
-                color: #6c757d;
-                font-style: italic;
-                background: #f8f9fa;
-                padding: 2px 6px;
-                border-radius: 3px;
-            }
-
-            .arrow {
-                color: #007bff;
-                font-weight: bold;
-                font-size: 1.2em;
-            }
-
-            .badge {
-                padding: 3px 8px;
-                border-radius: 4px;
-                font-size: 0.85em;
-                margin: 0 6px;
-                font-weight: bold;
-            }
-
-            .badge-success {
-                background: #d4edda;
-                color: #155724;
-                border: 1px solid #c3e6cb;
-            }
-
-            .badge-danger {
-                background: #f8d7da;
-                color: #721c24;
-                border: 1px solid #f5c6cb;
-            }
-
-            .no-changes {
-                color: #6c757d;
-                font-style: italic;
-                padding: 8px;
-                background: #f8f9fa;
-                border-radius: 4px;
-                display: inline-block;
-            }
-            </style>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="6">{% translate "لا توجد سجلات تدقيق لعرضها." %}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
 {% endblock content %}

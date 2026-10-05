@@ -3,7 +3,7 @@ import json
 
 register = template.Library()
 
-# قاموس لترجمة أسماء الحقول إلى العربية
+# a dictionary to map technical field names to human-readable Arabic names
 FIELD_NAMES = {
     # Company Fields (الموجودة سابقاً)
     'company_name': 'اسم المنشأة',
@@ -23,7 +23,7 @@ FIELD_NAMES = {
     'status_by_inspector': 'حالة التعيين',
     'decline_reason': 'سبب الرفض',
     
-    # User Fields (النماذج التي سجلتيها)
+    # User Fields (the ones that are used in the User model)
     'phone_number': 'رقم الجوال',
     'address': 'العنوان',
     'user_id': 'رقم الهوية',
@@ -53,9 +53,9 @@ FIELD_NAMES = {
     'mandoub_phone_1': 'جوال المندوب الأول',
     'mandoub_name_2': 'اسم المندوب الثاني',
     'mandoub_phone_2': 'جوال المندوب الثاني',
-    'inspection_status': 'حالة التقرير', # تأكدي من الاسم التقني للحقل في نموذج Inspection
+    'inspection_status': 'حالة التقرير',
     
-    # الحقول الداخلية التي قد تظهر
+    # the generic field for any model's ID (primary key)
     'id': 'الرقم التعريفي (ID)',
 }
 
@@ -66,20 +66,34 @@ def prettify_log(changes_json, key_type):
     لتحسين القراءة وإزالة التداخل اللغوي.
     """
     
-    # 1. معالجة مفاتيح الحقول (key_type='field')
+    # 1. processing field names (key_type='field')
     if key_type == 'field':
         return FIELD_NAMES.get(changes_json, changes_json)
 
-    # 2. معالجة القيم (key_type='value')
+    # 2. processing values (key_type='value')
+    # 2. processing values (key_type='value')
     if key_type == 'value':
-        # إذا كانت القيمة هي None (كنص أو كقيمة حقيقية)
+        # if the value is None or empty, return a default Arabic string
         if changes_json is None or str(changes_json).lower() == 'none' or changes_json == '':
-            return '__EMPTY_VALUE__' # القيمة الرمزية للفراغ
+            return 'فارغ' 
         
-        # إذا كانت القيمة رقمية وتمثل مفتاحاً خارجياً (FK)
-        if str(changes_json).isdigit() and changes_json in FIELD_NAMES:
-            # يمكن هنا إضافة منطق لجلب اسم المستخدم/الشركة بدلاً من الـ ID، 
-            # لكن هذا يتطلب الوصول لقاعدة البيانات من الفلتر وهو غير محبذ.
+        # convert the value to string and lower case for comparison
+        val_str = str(changes_json).strip().lower()
+        
+        
+        VALUE_TRANSLATIONS = {
+            'true': 'نشط / مفعل',
+            'false': 'غير نشط',
+            'active': 'نشط',
+            'deleted': 'محذوف',
+        }
+        
+        # check if the value is in the translations dictionary
+        if val_str in VALUE_TRANSLATIONS:
+            return VALUE_TRANSLATIONS[val_str]
+        
+        # if the value is a digit, return it as an ID representation
+        if str(changes_json).isdigit():
             return f"(ID: {changes_json})"
 
         return changes_json

@@ -2,47 +2,74 @@
 {% block title %}التقارير المرفوضة{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <h2 class="mb-4"><i class="fas fa-archive me-2 text-danger"></i>{{ list_title }}</h2>
-    <p class="text-info lead">
-        هذه التقارير تم رفضها وإغلاقها. لا يمكن تعديلها، ولكن يمكنك مراجعتها للاستفادة من ملاحظات المدير قبل بدء زيارة جديدة.
-    </p>
-    
-    <div class="table-responsive">
-        <table class="table table-hover table-striped">
-            <thead class="thead-dark">
-                <tr>
-                    <th>المنشأة</th>
-                    <th>تاريخ التقرير</th>
-                    <th style="width: 45%;">سبب الرفض (ملاحظات المدير)</th>
-                    <th>الإجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for inspection in inspections %}
-                <tr>
-                    <td>
-                        <a href="{% url 'company_details' pk=inspection.company.pk %}" class="fw-bold">
-                            {{ inspection.company.company_name }}
-                        </a>
-                    </td>
-                    <td>{{ inspection.inspection_date|date:"Y-m-d H:i" }}</td>
-                    <td>
-                        <span class="text-danger fw-bold">{{ inspection.rejection_notes|default:"لا يوجد سبب محدد." }}</span>
-                    </td>
-                    <td>
-                        <a href="{% url 'inspection_report_detail' pk=inspection.pk %}" class="btn btn-sm btn-info">
-                            <i class="fas fa-eye"></i> عرض التفاصيل
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center text-muted">لا توجد حاليًا تقارير مرفوضة في الأرشيف.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-7xl mx-auto px-6 py-12 space-y-8">
+        
+        <!-- Page Header -->
+        <div class="space-y-3">
+            <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">{{ list_title }}</h1>
+            <div class="bg-red-50/50 border-r-2 border-red-400 p-4 rounded-xl pr-6">
+                <p class="text-sm text-red-700 leading-relaxed">
+                    <strong class="font-semibold">تنبيه:</strong> هذه التقارير تم رفضها وإغلاقها. لا يمكن تعديلها، ولكن يمكنك مراجعتها للاستفادة من ملاحظات المدير قبل بدء زيارة جديدة.
+                </p>
+            </div>
+        </div>
+
+        <!-- Reports Table Card -->
+        {% if inspections %}
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-100 bg-gray-50/50">
+                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">المنشأة</th>
+                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">تاريخ التقرير</th>
+                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-600 uppercase tracking-wider" style="width: 45%;">سبب الرفض (ملاحظات المدير)</th>
+                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for inspection in inspections %}
+                        <tr class="transition-all duration-300 hover:bg-red-50/20 bg-red-50/10">
+                            <td class="px-6 py-5">
+                                <a href="{% url 'company_details' pk=inspection.company.pk %}" 
+                                   class="font-medium text-gray-900 hover:text-red-600 transition-colors duration-300">
+                                    {{ inspection.company.company_name }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-5 text-gray-600">{{ inspection.inspection_date|date:"Y-m-d H:i" }}</td>
+                            <td class="px-6 py-5">
+                                <div class="bg-red-50/50 border-r-2 border-red-400 p-3 rounded-lg">
+                                    <p class="text-sm text-red-700 font-medium leading-relaxed">
+                                        {{ inspection.rejection_notes|default:"لا يوجد سبب محدد." }}
+                                    </p>
+                                </div>
+                            </td>
+                            <td class="px-6 py-5">
+                                <a href="{% url 'inspection_report_detail' pk=inspection.pk %}" 
+                                   class="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 text-sm font-medium">
+                                    عرض التفاصيل
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-3xl border border-gray-100 p-16 text-center transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gray-50 flex items-center justify-center">
+                <svg class="w-12 h-12 text-gray-300" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <h3 class="text-xl font-light text-gray-900 mb-2">لا توجد تقارير مرفوضة</h3>
+            <p class="text-gray-500">لا توجد حالياً تقارير مرفوضة في الأرشيف</p>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 {% endblock %}

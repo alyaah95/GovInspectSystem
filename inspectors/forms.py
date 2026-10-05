@@ -172,17 +172,18 @@ class InspectorCreationForm(UserCreationForm):
     def save(self, request=None, supervisor=None, commit=True):
         user = super().save(commit=False)
         user.is_active = True
+        user.is_staff = True
 
         if supervisor:
             user.supervisor = supervisor
         
-        # حفظ المستخدم وتعيين المجموعة
+        # save the user instance first to ensure it has a primary key before adding to groups
         if commit:
             user.save()
             group, created = Group.objects.get_or_create(name='Inspectors')
             user.groups.add(group)
             
-            # **الكود الجديد لإرسال رابط إعادة تعيين كلمة المرور**
+            # send activation email
             current_site = get_current_site(request)
             subject = 'تفعيل حسابك في GovInspectSystem'
             
@@ -199,7 +200,7 @@ class InspectorCreationForm(UserCreationForm):
         return user
 
 class CustomUserCreationForm(forms.ModelForm):
-    # لا نقوم بتعريف حقول كلمة المرور هنا.
+    # model form for creating a new user with the required fields
     
     class Meta:
         model = User
@@ -214,8 +215,8 @@ class CustomUserCreationForm(forms.ModelForm):
             'address': ('العنوان'),
         }
 
-    # بما أننا لا نستخدم حقول كلمة المرور، فإننا لا نحتاج إلى إضافة دالة clean.
-    # ببساطة نترك النموذج يقوم بالتحقق الافتراضي.
+    # to ensure that the username is unique, we can override the clean_username method
+    # to ensure that the email is unique, we can override the clean_email method
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -225,8 +226,8 @@ class CustomUserCreationForm(forms.ModelForm):
         return user
     
 class UserProfileEditForm(forms.ModelForm):
-    # *ملاحظة:* لا ندرج حقل 'username' في التعديل عادةً لتجنب المشاكل،
-    # ولا ندرج حقول كلمة المرور.
+    # this form is for editing the user profile, and we do not include password fields.
+    # we will also add custom error messages for each field to ensure that the user knows what is required.
     first_name = forms.CharField(label='الاسم الأول', max_length=30, error_messages={
         'required': 'هذا الحقل مطلوب.',
     })
@@ -291,11 +292,11 @@ class UserProfileEditForm(forms.ModelForm):
 
 
 
-# قائمة المستخدمين المفتشين
+# the list of inspectors will be fetched dynamically from the database, so we don't need to hardcode them here.
 # INSPECTOR_CHOICES = [(user.id, user.username) for user in User.objects.filter(groups__name='Inspectors')]
 
 class ManagerCompanyForm(forms.ModelForm):
-    # المدير هو من يضيف البيانات الأولية
+    # the manager fills in the basic company information and assigns an inspector to the company
     assigned_to = forms.ModelChoiceField(
         queryset=User.objects.filter(groups__name='Inspectors'),
         required=True,
@@ -318,7 +319,7 @@ class ManagerCompanyForm(forms.ModelForm):
         }
 
 class InspectorCompanyForm(forms.ModelForm):
-    # المفتش يكمل البيانات الميدانية
+    # the inspector fills in the company information, but the basic fields are read-only.
     class Meta:
         model = Company
         fields = [
@@ -344,13 +345,13 @@ class InspectorCompanyForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # جعل الحقول الأساسية للقراءة فقط
+        # the following fields are read-only for the inspector, as they are filled by the manager
         for field in self.fields:
             if field in ['company_name', 'company_number', 'region', 'street_name', 'building_number']:
                 self.fields[field].widget.attrs['readonly'] = True
 
 
-# النموذج الجديد لإضافة سبب الرفض
+# this form is used when the manager wants to decline a company, and they need to provide a reason for the decline.
 class DeclineReasonForm(forms.Form):
     reason = forms.CharField(
         label="سبب الرفض",
@@ -360,7 +361,7 @@ class DeclineReasonForm(forms.Form):
 
 
 class CompanyImageForm(forms.ModelForm):
-    # هذا النموذج خاص بحقول الصورة
+    # this form is for adding images to a company, and we will use an inline formset to allow multiple images to be added at once.
     class Meta:
         model = CompanyImage
         fields = ['image', 'description']
@@ -369,7 +370,7 @@ class CompanyImageForm(forms.ModelForm):
             'description': 'وصف الصورة',
         }
 
-# هذا هو الـ Formset الذي يربط بين الشركة وصورها
+# this is the inline formset that links the company to its images
 CompanyImageFormSet = inlineformset_factory(
     Company,
     CompanyImage,
@@ -447,7 +448,7 @@ class InspectionForm(forms.ModelForm):
             }
         }
 
-# هذا هو الـ Formset الذي يربط التقرير بصوره
+# this is the inline formset that links the inspection to its images
 InspectionImageFormSet = inlineformset_factory(
     Inspection,
     InspectionImage,

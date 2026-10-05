@@ -2,42 +2,110 @@
 {% block title %}رفض تقرير التفتيش{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-lg border-danger">
-                <div class="card-header bg-danger text-white">
-                    <h4 class="mb-0">رفض تقرير التفتيش لـ: {{ inspection.company.company_name }}</h4>
-                </div>
-                <div class="card-body">
-                    <p class="lead">التقرير مُعد بواسطة: <strong>{{ inspection.inspector.get_full_name|default:inspection.inspector.username }}</strong></p>
-                    <p class="text-muted">تاريخ التفتيش: {{ inspection.inspection_date|date:"Y-m-d" }}</p>
-                    <hr>
-                    <p class="text-danger font-weight-bold">
-                        يرجى تأكيد الرفض وكتابة **سبب واضح** لإرساله للمفتش ليتمكن من التعديل.
-                    </p>
-                    
-                    <form method="post" class="mt-4">
-                        {% csrf_token %}
-                        
-                        <div class="form-group">
-                            <label for="{{ form.reason.id_for_label }}">سبب الرفض والملاحظات</label>
-                            {{ form.reason }}
-                            {% if form.reason.errors %}
-                                <div class="text-danger small">{{ form.reason.errors }}</div>
-                            {% endif %}
-                        </div>
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-3xl mx-auto px-6 py-12 space-y-8">
+        
+        <!-- Page Header -->
+        <div class="space-y-3">
+            <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">رفض تقرير التفتيش</h1>
+        </div>
 
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="submit" class="btn btn-danger btn-lg">
-                                <i class="fas fa-times-circle"></i> تأكيد الرفض والإرسال
-                            </button>
-                            <a href="{% url 'manager_review_list' %}" class="btn btn-secondary">إلغاء</a>
-                        </div>
-                    </form>
+        <!-- Rejection Form Card -->
+        <div class="bg-white rounded-3xl border-2 border-red-200 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            
+            <!-- Company Info Header -->
+            <div class="p-8 border-b border-gray-100">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-medium text-gray-900">{{ inspection.company.company_name }}</h2>
+                        <p class="text-sm text-gray-500 mt-1">تقرير تفتيش بانتظار المراجعة</p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50/50 rounded-2xl p-4 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">المفتش:</span>
+                        <span class="text-sm font-medium text-gray-900">{{ inspection.inspector.get_full_name|default:inspection.inspector.username }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">تاريخ التفتيش:</span>
+                        <span class="text-sm font-medium text-gray-900">{{ inspection.inspection_date|date:"Y-m-d" }}</span>
+                    </div>
                 </div>
             </div>
+
+            <!-- Warning Notice -->
+            <div class="px-8 pt-6">
+                <div class="bg-red-50/50 border-r-2 border-red-400 p-4 rounded-xl">
+                    <p class="text-sm text-red-700 leading-relaxed">
+                        <strong class="font-semibold">تنبيه:</strong> يرجى كتابة سبب واضح ومفصل للرفض. سيتم إرسال هذه الملاحظات للمفتش ليتمكن من إجراء التعديلات اللازمة وإعادة زيارة المنشأة.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Form Section -->
+            <div class="p-8">
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <div class="space-y-2">
+                        <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            سبب الرفض والملاحظات للمفتش
+                        </label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}
+                            <p class="text-sm text-red-600 mt-2">{{ form.reason.errors }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-between gap-4 pt-6 border-t border-gray-100">
+                        <button type="submit" 
+                                class="inline-flex items-center gap-2 px-8 py-3.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 font-medium text-lg">
+                            تأكيد الرفض والإرسال
+                        </button>
+                        <a href="{% url 'manager_review_list' %}" 
+                           class="inline-flex items-center gap-2 px-8 py-3.5 border border-gray-200 text-gray-700 rounded-2xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 font-medium text-lg">
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+
         </div>
+
     </div>
 </div>
+
+<style>
+/* Textarea Styling */
+textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.875rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    background-color: rgba(249, 250, 251, 0.5);
+    transition: all 0.3s ease;
+    resize: vertical;
+    font-family: inherit;
+}
+
+textarea:hover {
+    background-color: white;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    background-color: white;
+}
+</style>
 {% endblock %}

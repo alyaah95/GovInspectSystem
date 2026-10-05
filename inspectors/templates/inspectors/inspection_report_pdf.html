@@ -5,19 +5,19 @@
     <meta charset="UTF-8">
     <title>تقرير تفتيش - {{ company.company_name }}</title>
     <style>
-        /* تنسيق عام للجسم */
+        /* general style for the body */
         body {
             font-family: 'Arial', sans-serif;
             font-size: 11px;
-            margin: 1cm; /* يمكنك زيادة هذا الهامش حسب الحاجة */
+            margin: 1cm; 
             direction: rtl;
         }
 
-        /* تنسيق العناوين */
+        /* style for the main title */
         h1 {
             text-align: center;
             color: #000;
-            margin-bottom: 30px; /* زيادة المسافة بعد العنوان الرئيسي */
+            margin-bottom: 30px; 
             font-size: 24px;
         }
 
@@ -25,21 +25,21 @@
             color: #000;
             border-bottom: 1px solid #000;
             padding-bottom: 5px;
-            margin-top: 40px; /* زيادة المسافة قبل العناوين الفرعية */
+            margin-top: 40px; 
             margin-bottom: 20px;
             font-size: 16px;
         }
 
-        /* تنسيق الصفوف التي تحتوي على الحقول */
+        /* style for the rows containing the fields */
         .info-row {
-            margin-bottom: 15px; /* زيادة المسافة بين الصفوف */
+            margin-bottom: 15px; 
             line-height: 1.6;
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
         }
 
-        /* تنسيق كل حقل على حدة */
+        /* style for each field individually */
         .info-item {
             width: 48%;
         }
@@ -47,11 +47,11 @@
         .info-item strong {
             font-weight: bold;
             display: inline-block;
-            width: 140px; /* العرض الثابت لعنوان الحقل */
+            width: 140px; 
             flex-shrink: 0;
         }
 
-        /* تنسيق بيانات المندوب */
+        /* style for the inspector's information */
         .mandoub-info {
             padding-top: 15px;
             margin-top: 15px;
@@ -69,7 +69,7 @@
         <p>تاريخ الطباعة: {% now "Y-m-d H:i" %}</p>
     </div>
 
-    <h4>معلومات الشركة</h4>
+    <h4>معلومات المنشأة</h4>
     <div style="margin-bottom: 15px;">
         <div class="info-row">
             <div class="info-item"><strong>اسم المنشأة:</strong> <span>{{ company.company_name }}</span></div>

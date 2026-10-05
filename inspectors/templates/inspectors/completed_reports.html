@@ -2,41 +2,72 @@
 {% block title %}تقاريري المنجزة{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <h2 class="mb-4">{{ list_title }}</h2>
-    
-    <div class="table-responsive">
-        <table class="table table-hover table-striped">
-            <thead class="thead-light">
-                <tr>
-                    <th>المنشأة</th>
-                    <th>تاريخ التفتيش</th>
-                    <th>الحالة</th>
-                    <th>الإجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for inspection in inspections %}
-                <tr>
-                    <td>{{ inspection.company.company_name }}</td>
-                    <td>{{ inspection.inspection_date|date:"Y-m-d" }}</td>
-                    <td><span class="badge badge-primary">مؤرشف ومكتمل</span></td>
-                    <td>
-                        <a href="{% url 'inspection_report_detail' pk=inspection.pk %}" class="btn btn-sm btn-info me-2">
-                            <i class="fas fa-file-alt"></i> عرض التقرير
-                        </a>
-                        <a href="{% url 'generate_inspection_pdf' pk=inspection.pk %}" class="btn btn-sm btn-success" target="_blank">
-                            <i class="fas fa-download"></i> PDF
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center text-muted">لم يتم أرشفة أي تقارير بعد.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-7xl mx-auto px-6 py-12 space-y-8">
+        
+        <!-- Page Header -->
+        <div class="space-y-3">
+            <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">{{ list_title }}</h1>
+            <p class="text-gray-500 text-sm pr-6">التقارير المكتملة والمؤرشفة</p>
+        </div>
+
+        <!-- Reports Table Card -->
+        {% if inspections %}
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-100 bg-gray-50/50">
+                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">المنشأة</th>
+                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">تاريخ التفتيش</th>
+                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">الحالة</th>
+                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for inspection in inspections %}
+                        <tr class="transition-all duration-300 hover:bg-red-50/30">
+                            <td class="px-6 py-5 font-medium text-gray-900">{{ inspection.company.company_name }}</td>
+                            <td class="px-6 py-5 text-gray-600">{{ inspection.inspection_date|date:"Y-m-d" }}</td>
+                            <td class="px-6 py-5">
+                                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-700 text-sm font-medium border border-green-200">
+                                    <svg class="w-4 h-4" stroke-width="1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    مؤرشف ومكتمل
+                                </span>
+                            </td>
+                            <td class="px-6 py-5">
+                                <div class="flex items-center gap-3">
+                                    <a href="{% url 'inspection_report_detail' pk=inspection.pk %}" 
+                                       class="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 text-sm font-medium">
+                                        عرض التقرير
+                                    </a>
+                                    <a href="{% url 'generate_inspection_pdf' pk=inspection.pk %}" target="_blank"
+                                       class="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 text-sm font-medium">
+                                        PDF
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-3xl border border-gray-100 p-16 text-center transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gray-50 flex items-center justify-center">
+                <svg class="w-12 h-12 text-gray-300" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+                </svg>
+            </div>
+            <h3 class="text-xl font-light text-gray-900 mb-2">لا توجد تقارير مؤرشفة</h3>
+            <p class="text-gray-500">لم يتم أرشفة أي تقارير بعد</p>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 {% endblock %}

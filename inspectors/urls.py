@@ -5,27 +5,27 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # مسارات خاصة بتطبيق 'inspectors'
+    # routes for user registration and authentication
     path('add-inspector/', views.add_inspector_view, name='add_inspector'),
 
-     # المسار الموحد لعرض البروفايل
+     # the route for the inspector to view their own profile
     path('profile/', views.profile_detail_view, name='user_profile'),
     
-    # المسار الموحد لتعديل البروفايل
+    # the route for the inspector to edit their own profile
     path('profile/edit/', views.edit_profile_view, name='edit_my_profile'),
 
-    # 1. قائمة المفتشين
+    # 1. list of all inspectors (for managers to view and manage)
     path('managers/inspectors/', views.inspectors_list_view, name='inspectors_list'),
     
-    # 2. تفاصيل المفتش (نستخدم pk كمعرف)
+    # 2. inspector detail view (for managers to view an inspector's details)
     path('managers/inspectors/<int:pk>/', views.inspector_detail_view, name='inspector_detail'),
 
-    # 🛑 مسار تعديل بيانات المفتش بواسطة المدير (جديد) 🛑
+    # the route for the manager to edit an inspector's profile
     path('manager/inspector/<int:pk>/edit/', views.manager_edit_inspector_view, name='manager_edit_inspector'),
 
     path('manager/audit-logs/', views.manager_audit_log_view, name='manager_audit_logs'),
     
-    # مسارات الشركات
+    # company-related routes
     path('companies/', views.companies_list, name='companies_list'),
     path('companies/add/', views.add_company_view, name='add_company'),
     path('companies/<int:pk>/', views.company_details_view, name='company_details'),
@@ -38,13 +38,13 @@ urlpatterns = [
     # path('companies/<int:pk>/decline/reason/', views.decline_assignment_view, name='decline_assignment'), 
     path('notifications/', views.notifications_view, name='notifications_view'),
     
-    # مسارات التقارير
-    # 1. تقارير المراجعة (المدير)
+    # reports-related routes
+    # 1. reports pending review (for managers to review and approve/reject)
     path('reports/review/', views.manager_review_list_view, name='manager_review_list'), # ✅ جديد
     path('reports/review/<int:pk>/approve/', views.approve_inspection_view, name='approve_inspection'), # ✅ جديد
     path('reports/review/<int:pk>/reject/', views.reject_inspection_view, name='reject_inspection'), # ✅ جديد
 
-     # 2. الأرشيف والحذف (المدير)
+     # 2. the route for the manager to view all reports (approved, rejected, pending, archived, deleted)
     path('reports/archive/', views.manager_reports_archive_view, name='reports_archive'),
     path('reports/deleted/', views.manager_deleted_reports_view, name='manager_deleted_reports'), # ✅ جديد
     
@@ -56,19 +56,19 @@ urlpatterns = [
     path('inspection/<int:pk>/restore/', views.restore_inspection_view, name='restore_inspection'), # المسار الجديد للاسترجاع
     path('inspection/<int:pk>/edit/', views.edit_inspection_view, name='edit_inspection'),
 
-    # الارسال للمراجعة (المفتش)
+    # a route for the inspector to submit their inspection report for review (changes status from draft to pending approval)
     path('inspection/<int:pk>/submit/', views.submit_for_review_view, name='submit_for_review'),
     
-    # 4. التقارير المكتملة (المفتش)
+    # 4. completed and rejected reports for inspectors to view their own reports
     path('inspector/completed-reports/', views.inspector_completed_reports_view, name='inspector_completed_reports'), # ✅ جديد
     path('inspector/rejected-reports/', views.inspector_rejected_reports_view, name='inspector_rejected_reports'),
     
-    # مسارات إعادة تعيين كلمة المرور
+    # the routes for password reset functionality
     path('password_reset/', auth_views.PasswordResetView.as_view(
     template_name='inspectors/password_reset_form.html',
-    # النسخة النصية (ضرورية جداً لدجانجو)
+    # the email template for the password reset email
     email_template_name='inspectors/password_reset_email.txt', 
-    # نسخة التصميم
+    # the subject template for the password reset email
     html_email_template_name='inspectors/password_reset_email.html',
     subject_template_name='inspectors/password_reset_subject.txt'
     ), name='password_reset'),

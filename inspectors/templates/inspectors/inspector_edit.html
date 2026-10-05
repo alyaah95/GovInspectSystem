@@ -1,33 +1,122 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>تعديل بيانات المفتش: {{ inspector.username }}</title>
-</head>
-<body>
-    <h1>تعديل بيانات المفتش: {{ inspector.first_name }} {{ inspector.last_name }}</h1>
-    
-    {% if messages %}
-        <ul class="messages">
+{% extends 'base.html' %}
+
+{% block content %}
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-3xl mx-auto px-6 py-12 space-y-8">
+        
+        <!-- Page Header -->
+        <div class="space-y-3">
+            <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">تعديل بيانات المفتش</h1>
+            <p class="text-gray-500 text-sm pr-6">{{ inspector.first_name }} {{ inspector.last_name }}</p>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="space-y-3">
             {% for message in messages %}
-                <li class="{{ message.tags }}">{{ message }}</li>
+            <div class="bg-{% if message.tags == 'success' %}green{% elif message.tags == 'error' %}red{% else %}blue{% endif %}-50 border border-{% if message.tags == 'success' %}green{% elif message.tags == 'error' %}red{% else %}blue{% endif %}-200 rounded-2xl p-4">
+                <p class="text-sm text-{% if message.tags == 'success' %}green{% elif message.tags == 'error' %}red{% else %}blue{% endif %}-700">{{ message }}</p>
+            </div>
             {% endfor %}
-        </ul>
-    {% endif %}
+        </div>
+        {% endif %}
 
-    <form method="post" novalidate> 
-        {% csrf_token %}
-        
-        <p>
-            <label>اسم المستخدم (لا يمكن تعديله):</label>
-            <input type="text" value="{{ inspector.username }}" disabled>
-        </p>
+        <!-- Edit Form Card -->
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            
+            <div class="p-8">
+                <form method="post" novalidate class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Username (Disabled) -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">اسم المستخدم (لا يمكن تعديله)</label>
+                        <input type="text" 
+                               value="{{ inspector.username }}" 
+                               disabled 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed">
+                    </div>
 
-        {{ form.as_p }}
-        
-        <button type="submit">حفظ التعديلات</button>
-    </form>
-    
-    <p><a href="{% url 'inspectors_list' %}">العودة إلى قائمة المفتشين</a></p>
-</body>
-</html>
+                    <!-- Dynamic Form Fields -->
+                    {{ form.as_p }}
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-between gap-4 pt-6 border-t border-gray-100">
+                        <button type="submit" 
+                                class="inline-flex items-center gap-2 px-8 py-3.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 font-medium">
+                            حفظ التعديلات
+                        </button>
+                        <a href="{% url 'inspectors_list' %}" 
+                           class="inline-flex items-center gap-2 px-8 py-3.5 border border-gray-200 text-gray-700 rounded-2xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 font-medium">
+                            العودة إلى قائمة المفتشين
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<style>
+/* Django Form Styling */
+p {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+select,
+textarea {
+    width: 100%;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.875rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    background-color: rgba(249, 250, 251, 0.5);
+    transition: all 0.3s ease;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+    background-color: white;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    background-color: white;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.errorlist {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0 0;
+}
+
+.errorlist li {
+    color: #dc2626;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}

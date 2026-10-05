@@ -1,111 +1,128 @@
-{% extends "base.html" %}
-{% block title %}تقارير بانتظار الموافقة{% endblock %}
+{% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="container my-5">
-    <h2 class="mb-4">{{ list_title }}</h2>
-    <p class="text-muted">هذه القائمة تعرض التقارير التي أرسلها المفتشون وهي بانتظار قرارك.</p>
+<div dir="rtl" class="min-h-screen bg-gray-50/30">
+    <div class="max-w-7xl mx-auto px-6 py-12 space-y-8">
 
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <form method="GET" class="row g-3 align-items-end">
-                
-                <div class="col-md-5">
-                    <label for="searchQuery" class="form-label">البحث عن تقرير</label>
-                    <input type="text" 
-                           class="form-control" 
-                           id="searchQuery" 
-                           name="q" 
-                           placeholder="اسم الشركة أو المفتش..."
-                           value="{{ search_query|default:'' }}">
-                </div>
-
-                <div class="col-md-3">
-                    <label for="dateFrom" class="form-label">من تاريخ (التفتيش)</label>
-                    <input type="date" 
-                           class="form-control" 
-                           id="dateFrom" 
-                           name="date_from"
-                           value="{{ date_from|default:'' }}">
-                </div>
-
-                <div class="col-md-3">
-                    <label for="dateTo" class="form-label">إلى تاريخ (التفتيش)</label>
-                    <input type="date" 
-                           class="form-control" 
-                           id="dateTo" 
-                           name="date_to"
-                           value="{{ date_to|default:'' }}">
-                </div>
-
-                <div class="col-md-1 d-flex align-items-center">
-                    <button type="submit" class="btn btn-primary w-100 me-2" title="بحث">
-                        <i class="fas fa-search"></i>
-                    </button>
-                    <a href="{% url 'manager_review_list' %}" class="btn btn-outline-secondary w-100" title="إعادة تعيين">
-                        <i class="fas fa-redo"></i>
-                    </a>
-                </div>
-
-                <!-- الترتيب -->
-                <div class="col-md-2">
-                    <label for="orderBy" class="form-label">الترتيب</label>
-                    <select class="form-select" id="orderBy" name="order_by">
-                        <option value="-inspection_date" {% if current_order == '-inspection_date' %}selected{% endif %}>  (الأحدث أولاً)</option>
-                        <option value="inspection_date" {% if current_order == 'inspection_date' %}selected{% endif %}>  (الأقدم أولاً)</option>
-                    </select>
-                </div>
-
-            </form>
+        <div class="space-y-3">
+            <h1 class="text-4xl font-light text-gray-900 border-r-4 border-red-600 pr-4">تقارير بانتظار المراجعة</h1>
+            <p class="text-gray-500 text-sm pr-6">مراجعة واعتماد التقارير الميدانية المرفوعة</p>
         </div>
-    </div>
-    
-    <div class="table-responsive">
-        <table class="table table-hover table-striped">
-            <thead class="thead-dark">
-                <tr>
-                    <th>المنشأة</th>
-                    <th>المفتش</th>
-                    <th>رقم هوية المفتش</th>
-                    <th>تاريخ التفتيش</th>
-                    <th>الحالة</th>
-                    <th>الإجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for inspection in inspections %}
-                <tr>
-                    <td>
-                        <a href="{% url 'company_details' pk=inspection.company.pk %}">
-                            {{ inspection.company.company_name }}
-                        </a>
-                    </td>
-                    <td>{{ inspection.inspector.username }}</td>
-                    <td>{{ inspection.inspector.user_id }}</td>
-                    <td>{{ inspection.inspection_date|date:"Y-m-d" }}</td>
-                    <td><span class="badge badge-warning">بانتظار الموافقة</span></td>
-                    <td>
-                        <a href="{% url 'inspection_report_detail' pk=inspection.pk %}" class="btn btn-sm btn-info me-2">
-                            <i class="fas fa-eye"></i> مراجعة
-                        </a>
-                        <form method="post" action="{% url 'approve_inspection' pk=inspection.pk %}" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من الموافقة على التقرير؟ سيتم أرشفته بشكل نهائي.');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-success me-2">
-                                <i class="fas fa-check-circle"></i> موافقة
+
+        <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div class="p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-600" stroke-width="1.2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-900">البحث والتصفية</h3>
+                </div>
+
+                <form method="GET" class="space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="lg:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">البحث السريع</label>
+                            <input type="text" name="q" value="{{ search_query|default:'' }}"
+                                   class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all duration-300 bg-gray-50/50 hover:bg-white" 
+                                   placeholder="اسم المنشأة أو المفتش...">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">من تاريخ</label>
+                            <input type="date" name="date_from" value="{{ date_from|default:'' }}"
+                                   class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all duration-300 bg-gray-50/50">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">إلى تاريخ</label>
+                            <input type="date" name="date_to" value="{{ date_to|default:'' }}"
+                                   class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all duration-300 bg-gray-50/50">
+                        </div>
+                        <div class="flex items-end gap-3">
+                            <button type="submit" class="flex-1 px-6 py-3 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 font-medium">
+                                بحث
                             </button>
-                        </form>
-                        <a href="{% url 'reject_inspection' pk=inspection.pk %}" class="btn btn-sm btn-danger">
-                            <i class="fas fa-times-circle"></i> رفض
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted">لا توجد تقارير جديدة بانتظار المراجعة.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                            <a href="{% url 'manager_review_list' %}" class="flex-1 px-6 py-3 border border-gray-200 text-gray-700 rounded-2xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 font-medium text-center">
+                                إعادة تعيين
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if inspections %}
+            <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right">
+                        <thead>
+                            <tr class="border-b border-gray-100 bg-gray-50/50">
+                                <th class="px-6 py-4 text-xs font-medium text-gray-600 uppercase tracking-wider">المنشأة</th>
+                                <th class="px-6 py-4 text-xs font-medium text-gray-600 uppercase tracking-wider">المفتش</th>
+                                <th class="px-6 py-4 text-xs font-medium text-gray-600 uppercase tracking-wider">التاريخ</th>
+                                <th class="px-6 py-4 text-xs font-medium text-gray-600 uppercase tracking-wider">الحالة</th>
+                                <th class="px-6 py-4 text-xs font-medium text-gray-600 uppercase tracking-wider text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for inspection in inspections %}
+                            <tr class="transition-all duration-300 hover:bg-red-50/30">
+                                <td class="px-6 py-5 font-medium text-gray-900">
+                                    {{ inspection.company.company_name }}
+                                </td>
+                                <td class="px-6 py-5">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm text-gray-900">{{ inspection.inspector.get_full_name }}</span>
+                                        <span class="text-xs text-gray-400 font-mono">{{ inspection.inspector.user_id }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-5 text-sm text-gray-600">{{ inspection.inspection_date|date:"Y-m-d" }}</td>
+                                <td class="px-6 py-5">
+                                    <span class="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-600 rounded-full text-xs font-medium border border-gray-200">
+                                        قيد المراجعة
+                                    </span>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <a href="{% url 'inspection_report_detail' pk=inspection.pk %}" 
+                                           class="px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-red-50/30 hover:border-red-200 hover:text-red-600 transition-all duration-300 text-xs font-medium">
+                                            عرض وتدقيق
+                                        </a>
+                                        
+                                        <form method="post" action="{% url 'approve_inspection' pk=inspection.pk %}" class="inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-xl hover:bg-green-600 hover:text-white transition-all duration-300 text-xs font-medium">
+                                                موافقة
+                                            </button>
+                                        </form>
+
+                                        <a href="{% url 'reject_inspection' pk=inspection.pk %}" 
+                                           class="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-300 text-xs font-medium">
+                                            رفض
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% else %}
+            <div class="bg-white rounded-3xl border border-gray-100 p-16 text-center">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-green-50 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-light text-gray-900 mb-2">النظام مكتمل!</h3>
+                <p class="text-gray-500 text-sm">لا توجد تقارير تنتظر المراجعة في الوقت الحالي.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
