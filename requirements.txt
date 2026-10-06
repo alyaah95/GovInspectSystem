@@ -13,3 +13,5 @@ Pillow==10.2.0
 reportlab==4.0.4
 arabic-reshaper
 python-bidi
+cloudinary
+django-cloudinary-storage
