@@ -565,16 +565,20 @@ def company_details_view(request, pk):
 @login_required(login_url='login')
 @user_passes_test(is_system_user, login_url='login')
 def edit_company_view(request, pk):
-    # Retrieve the company from the database
+    # Fetch the target company or return a 404 response if not found
     company = get_object_or_404(Company, pk=pk)
-    
-    # Store the original assigned_to value for comparison later
     original_assigned_to = company.assigned_to
     
-    # 1. Determine the form and formset based on the user's role and the company's status
+    # Initialize form variables to prevent UnboundLocalError
+    FormClass = None
+    ImageFormSet = None
+    is_inspector_flow = False
+
+    # 1. Determine form class and formset based on the user role
     if is_manager(request.user):
         FormClass = ManagerCompanyForm
-        ImageFormSet = ImageFormSet = inlineformset_factory(Company, CompanyImage, form=CompanyImageForm, extra=1, can_delete=True)  # المدير لا يعدل الصور
+        # Fixed the double assignment typo here
+        ImageFormSet = inlineformset_factory(Company, CompanyImage, form=CompanyImageForm, extra=1, can_delete=True)
         is_inspector_flow = False
         
     elif is_inspector(request.user) and company.assigned_to == request.user:
@@ -583,7 +587,7 @@ def edit_company_view(request, pk):
             ImageFormSet = inlineformset_factory(Company, CompanyImage, form=CompanyImageForm, extra=1, can_delete=True)
             is_inspector_flow = True
         else:
-            # If the inspector is assigned but the status is not accepted or in_progress, they cannot edit the company.
+            # Inspector must accept the assignment before editing field data
             messages.error(request, "يجب قبول المهمة أولاً قبل تعديل بياناتها الميدانية.")
             return redirect('companies_list')
         
@@ -591,40 +595,34 @@ def edit_company_view(request, pk):
         messages.error(request, "ليس لديك الصلاحية لتعديل هذه المنشأة.")
         return redirect('companies_list')
 
-    # 2. Handle POST request for form submission
+    # 2. Handle POST requests for form submissions
     if request.method == 'POST':
         form = FormClass(request.POST, request.FILES, instance=company)
         formset = ImageFormSet(request.POST, request.FILES, instance=company) if ImageFormSet else None
 
-        # Check the validity of the form and formset (if it exists)
+        # Validate form and formset
         if form.is_valid() and (not formset or formset.is_valid()):
-            # Get the new value from the form
             new_assigned_to = form.cleaned_data.get('assigned_to')
             
-            # Print the values for debugging purposes
-            print(f"Original assigned_to: {original_assigned_to}")
-            print(f"New assigned_to: {new_assigned_to}")
-            print(f"Comparison: {original_assigned_to != new_assigned_to}")
+            # Save company instance in memory without committing to DB yet
+            company = form.save(commit=False)
             
-            # Save the company form
-            company = form.save()
+            # Update status if in the inspector workflow
+            if is_inspector_flow and company.status_by_inspector == 'accepted':
+                company.status_by_inspector = 'in_progress'
             
-            # Save the formset if it exists
+            # Commit company changes and save many-to-many relationships
+            company.save()
+            form.save_m2m()
+            
+            # Save the associated image formset if present
             if formset:
                 formset.save()
 
-            # Update the status of the company based on the flow (inspector or manager)
-            if is_inspector_flow and company.status_by_inspector == 'accepted':
-                company.status_by_inspector = 'in_progress'
-                company.save()
-                
-            # Send notifications only if the flow is not inspector (i.e., manager flow)
+            # Handle notifications and inspector assignment updates for managers
             if not is_inspector_flow:
-                # Check if the assigned_to field has changed
                 if original_assigned_to != new_assigned_to:
-                    print(f"Sending notifications - Old: {original_assigned_to}, New: {new_assigned_to}")
-                    
-                    # Notice to the outgoing inspector (if there is an outgoing inspector)
+                    # Notify the unassigned inspector
                     if original_assigned_to:
                         create_notification(
                             recipient=original_assigned_to,
@@ -634,10 +632,11 @@ def edit_company_view(request, pk):
                             company=company
                         )
                     
-                    # Notice to the new inspector (if there is a new inspector)
+                    # Notify and assign the new inspector
                     if new_assigned_to:
                         company.status_by_inspector = 'assigned'
-                        company.save() 
+                        company.save(update_fields=['status_by_inspector'])
+                        
                         create_notification(
                             recipient=new_assigned_to,
                             sender=request.user,
@@ -647,17 +646,16 @@ def edit_company_view(request, pk):
                         )
                         send_assignment_notification(company)
                     else:
-                        # If the new assigned_to is None, it means the task has been unassigned, so we set the status to 'not_assigned'
+                        # Revert status if unassigned entirely
                         company.status_by_inspector = 'not_assigned'
-                        company.save()  
+                        company.save(update_fields=['status_by_inspector'])
 
             messages.success(request, f"تم تحديث بيانات منشأة {company.company_name} بنجاح.")
             return redirect('company_details', pk=company.pk)
         else:
-            # if the form or formset is invalid, display an error message
             messages.error(request, "يوجد أخطاء في البيانات المرسلة. يرجى التصحيح والمحاولة مرة أخرى.")
     
-    # 3. Handle GET request to display the form with existing data
+    # 3. Handle GET requests to render form with instance data
     else:
         form = FormClass(instance=company)
         formset = ImageFormSet(instance=company) if ImageFormSet else None
