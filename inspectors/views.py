@@ -132,6 +132,8 @@ def send_assignment_notification(company):
 
 # a function to create a notification in the system for a user
 def create_notification(recipient, sender, title, message, company=None):
+    if not recipient:
+        return None
     Notification.objects.create(
         recipient=recipient,
         sender=sender,
@@ -420,13 +422,15 @@ def show_company_view(request, pk):
     company = get_object_or_404(Company, pk=pk)
     company.status = 'active'
     company.save()
-    create_notification(
-        recipient=company.assigned_to,
-        sender=request.user,
-        title='استعادة منشأة',
-        message=f'تم استعادة المنشأة "{company.company_name}" من قبل المدير.',
-        company=company
-    )
+    if company.assigned_to:
+        create_notification(
+            recipient=company.assigned_to,
+            sender=request.user,
+            title='استعادة منشأة',
+            message=f'تم استعادة المنشأة "{company.company_name}" من قبل المدير.',
+            company=company
+        )
+    
     messages.success(request, f"تم استعادة منشأة {company.company_name} بنجاح.")
     return redirect('hidden_companies_list')
 
