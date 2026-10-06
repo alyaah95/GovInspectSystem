@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from auditlog.registry import auditlog
+from cloudinary_storage.storage import MediaCloudinaryStorage
 # choices for company type, inspector status, compliance, gender, violation, regulations, shift, and inspection status
 COMPANY_TYPE_CHOICES = [
     ('commercial_shop', 'محل تجاري'),
@@ -139,7 +140,7 @@ class Company(models.Model):
 # a model to store images related to a company, with a foreign key to the company and an image field for the image file. The description field is optional, and the uploaded_at field stores the date and time when the image was uploaded.
 class CompanyImage(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='اسم المنشأة')
-    image = models.ImageField(upload_to='company_images/', verbose_name='الصورة')
+    image = models.ImageField(upload_to='company_images/',storage=MediaCloudinaryStorage(), verbose_name='الصورة')
     description = models.CharField(max_length=255, blank=True, verbose_name='وصف الصورة')
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ الرفع')
 
@@ -216,7 +217,7 @@ class Inspection(models.Model):
 # a model to store images related to an inspection report, with a foreign key to the inspection and an image field for the image file. The description field is optional, and the uploaded_at field stores the date and time when the image was uploaded.
 class InspectionImage(models.Model):
     inspection = models.ForeignKey(Inspection, on_delete=models.CASCADE, verbose_name='تقرير التفتيش')
-    image = models.ImageField(upload_to='inspection_images/', verbose_name='الصورة')
+    image = models.ImageField(upload_to='inspection_images/',storage=MediaCloudinaryStorage(), verbose_name='الصورة')
     description = models.CharField(max_length=255, blank=True, verbose_name='وصف الصورة')
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ الرفع')
 
